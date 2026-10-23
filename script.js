@@ -29,7 +29,7 @@
       (see ALLOWED_ORIGINS in api/tmdb.js).
    The token is never involved here: it stays in Vercel's environment
    variables, and this URL is public on purpose. */
-const VERCEL_BACKEND_ORIGIN = 'https://fala243-movie-discovery-api.vercel.app';
+const VERCEL_BACKEND_ORIGIN = 'https://movie-discovery-capstone-seven.vercel.app';
 const STATIC_DEV_PORTS = ['5500', '8000']; // must match ALLOWED_ORIGINS in api/tmdb.js
 
 function getApiBaseUrl() {

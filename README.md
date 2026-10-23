@@ -3,7 +3,7 @@
 An educational capstone project: a responsive, accessible, multi-page web app for discovering movies, watching trailers, checking where a movie can be watched legally, and keeping a personal watchlist. Data comes from [The Movie Database (TMDB) API](https://developer.themoviedb.org/).
 
 **Live site (GitHub Pages):** https://fala243.github.io/movie-discovery-capstone/
-**Secure API backend (Vercel):** https://fala243-movie-discovery-api.vercel.app/api/tmdb
+**Secure API backend (Vercel):** https://movie-discovery-capstone-seven.vercel.app/api/tmdb
 
 > **This is a movie discovery tool, not a streaming service.** It does not host, stream, or download full movies. Trailers are official YouTube embeds, and the "Where to Watch" section only shows which services may offer a movie (data from JustWatch via TMDB), with a link to TMDB's watch page.
 
@@ -107,7 +107,7 @@ GitHub Pages can only host static files (HTML, CSS, JavaScript, images). It can'
  https://fala243.github.io/movie-discovery-capstone/        (frontend: HTML/CSS/JS, no secrets)
    │  2. script.js calls the backend (cross-origin fetch)
    ▼
- https://fala243-movie-discovery-api.vercel.app/api/tmdb   (backend: api/tmdb.js on Vercel)
+ https://movie-discovery-capstone-seven.vercel.app/api/tmdb   (backend: api/tmdb.js on Vercel)
    │  3. checks the Origin (CORS), validates the request,
    │     adds TMDB_READ_ACCESS_TOKEN from Vercel's environment variables
    ▼
@@ -118,7 +118,7 @@ GitHub Pages can only host static files (HTML, CSS, JavaScript, images). It can'
 
 | Page served from | API URL used |
 | --- | --- |
-| GitHub Pages (`*.github.io`) | `https://fala243-movie-discovery-api.vercel.app/api/tmdb` |
+| GitHub Pages (`*.github.io`) | `https://movie-discovery-capstone-seven.vercel.app/api/tmdb` |
 | Local static server on port **5500** (VS Code Live Server) or **8000** (`python -m http.server`) | the same Vercel backend |
 | `vercel dev` (e.g. `localhost:3000`) or the Vercel deployment itself | `/api/tmdb` (same site) |
 
@@ -258,8 +258,8 @@ Vercel turns every file in `api/` into a serverless function (`api/tmdb.js` → 
 2. **Project settings:** Framework Preset **Other**; Root Directory `./`; Build, Output, and Install commands left **empty**.
 3. **Environment variable:** **Settings → Environment Variables** → Key `TMDB_READ_ACCESS_TOKEN`, Value = your TMDB API Read Access Token, Environment **Production** (optionally also Preview) → **Save**. Never put the token in any file in the repository.
 4. **Deploy:** **Deployments** → **Redeploy** the latest deployment, or push a commit to `main`. Every later push to `main` redeploys automatically.
-5. **Give the backend its fixed address:** **Settings → Domains** → add `fala243-movie-discovery-api.vercel.app` → **Add** (assign it to **Production**). This must match `VERCEL_BACKEND_ORIGIN` in `script.js`. If Vercel says the name is taken, choose another `*.vercel.app` name and update that one line in `script.js`.
-6. **Check it:** open https://fala243-movie-discovery-api.vercel.app/api/tmdb?path=/genre/movie/list. You should see genre JSON. If you see `SERVER_CONFIG_ERROR`, the token variable is missing: add it, then redeploy.
+5. **Note the Production domain:** **Settings → Domains** (or the project Overview) lists it. This project uses `movie-discovery-capstone-seven.vercel.app`. It must match `VERCEL_BACKEND_ORIGIN` in `script.js`; if the domain ever changes, update that one line and push.
+6. **Check it:** open https://movie-discovery-capstone-seven.vercel.app/api/tmdb?path=/genre/movie/list. You should see genre JSON. If you see `SERVER_CONFIG_ERROR`, the token variable is missing: add it, then redeploy.
 
 ### Part B: Frontend on GitHub Pages
 
@@ -276,12 +276,12 @@ All HTML, CSS, JavaScript, and image paths are **relative** (`styles.css`, `scri
 
 On **https://fala243.github.io/movie-discovery-capstone/** (DevTools open with F12):
 
-1. **Home:** Trending and Popular load. In **Network**, the `tmdb?path=…` requests go to `fala243-movie-discovery-api.vercel.app`, return `200`, include the response header `access-control-allow-origin: https://fala243.github.io`, and show no token anywhere.
+1. **Home:** Trending and Popular load. In **Network**, the `tmdb?path=…` requests go to `movie-discovery-capstone-seven.vercel.app`, return `200`, include the response header `access-control-allow-origin: https://fala243.github.io`, and show no token anywhere.
 2. **Navigation:** Home / Explore / Watchlist links stay under `/movie-discovery-capstone/` and highlight the current page; styles and the favicon load (no 404s in Console).
 3. **Explore:** search "Avatar", change the genre, open **View Details**, click **Watch Trailer** and press play, then **Close Trailer** (sound stops). Change the **Where to Watch** country and check that Stream / Rent / Buy update.
 4. **Watchlist:** save two movies, open **Watchlist**, and **refresh**: they're still there. Remove one and refresh again.
 5. **Errors:** DevTools → Network → **Offline**, then search: you should get a friendly message and **Try Again**. Go back online and retry.
-6. **CORS protection:** opening the backend URL directly in a tab works (no `Origin` header). A fetch from any other website's console, e.g. on `https://example.com`, run `fetch('https://fala243-movie-discovery-api.vercel.app/api/tmdb?path=/movie/popular')`, is **blocked** by the browser.
+6. **CORS protection:** opening the backend URL directly in a tab works (no `Origin` header). A fetch from any other website's console, e.g. on `https://example.com`, run `fetch('https://movie-discovery-capstone-seven.vercel.app/api/tmdb?path=/movie/popular')`, is **blocked** by the browser.
 7. **Phone:** open the Pages URL on a real phone and repeat steps 1–4.
 
 **Troubleshooting**
