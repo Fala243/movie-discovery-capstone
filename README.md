@@ -2,6 +2,9 @@
 
 An educational capstone project: a responsive, accessible, multi-page web app for discovering movies, watching trailers, checking where a movie can be watched legally, and keeping a personal watchlist. Data comes from [The Movie Database (TMDB) API](https://developer.themoviedb.org/).
 
+**Live site (GitHub Pages):** https://fala243.github.io/movie-discovery-capstone/
+**Secure API backend (Vercel):** https://fala243-movie-discovery-api.vercel.app/api/tmdb
+
 > **This is a movie discovery tool, not a streaming service.** It does not host, stream, or download full movies. Trailers are official YouTube embeds, and the "Where to Watch" section only shows which services may offer a movie (data from JustWatch via TMDB), with a link to TMDB's watch page.
 
 ![Homepage on desktop](docs/screenshots/home-desktop.jpg)
@@ -53,7 +56,7 @@ This project was built step by step to practise:
 | Video | YouTube embeds (`youtube-nocookie.com`) |
 | Storage | Browser `localStorage` (watchlist) |
 | Security | Vercel serverless function (`api/tmdb.js`) that keeps the token on the server |
-| Hosting | Vercel (static files + serverless function, free Hobby plan) |
+| Hosting | **GitHub Pages** (frontend) + **Vercel** serverless function (API proxy, free Hobby plan) |
 | API testing | Postman and the browser DevTools Network tab |
 
 There is **no build step and no `package.json`**: the files are served exactly as they are.
@@ -89,24 +92,63 @@ movie-discovery-capstone/
 │   └── screenshots/      # Images used in this README
 ├── .env.example          # Template showing the variable name (no real value)
 ├── .gitignore            # Keeps .env, .env.local, and .vercel/ out of Git
+├── .nojekyll             # Tells GitHub Pages to serve the files as-is (no Jekyll build)
 └── README.md
 ```
 
+## Architecture: GitHub Pages + Vercel
+
+GitHub Pages can only host static files (HTML, CSS, JavaScript, images). It can't run server code or keep secrets. So the project is split:
+
+```
+ Visitor's browser
+   │  1. loads the pages from GitHub Pages
+   ▼
+ https://fala243.github.io/movie-discovery-capstone/        (frontend: HTML/CSS/JS, no secrets)
+   │  2. script.js calls the backend (cross-origin fetch)
+   ▼
+ https://fala243-movie-discovery-api.vercel.app/api/tmdb   (backend: api/tmdb.js on Vercel)
+   │  3. checks the Origin (CORS), validates the request,
+   │     adds TMDB_READ_ACCESS_TOKEN from Vercel's environment variables
+   ▼
+ https://api.themoviedb.org/3                              (TMDB)
+```
+
+**How `script.js` chooses the backend** (`getApiBaseUrl()`):
+
+| Page served from | API URL used |
+| --- | --- |
+| GitHub Pages (`*.github.io`) | `https://fala243-movie-discovery-api.vercel.app/api/tmdb` |
+| Local static server on port **5500** (VS Code Live Server) or **8000** (`python -m http.server`) | the same Vercel backend |
+| `vercel dev` (e.g. `localhost:3000`) or the Vercel deployment itself | `/api/tmdb` (same site) |
+
+The backend URL is public on purpose; it's not a secret. The **token** is the secret, and it only exists in Vercel's environment variables (and in your local, git-ignored `.env.local`).
+
+### CORS (who may call the backend)
+
+Browsers block a page on one origin from reading another origin's responses unless the server allows it. `api/tmdb.js` allows **only these exact origins** (`ALLOWED_ORIGINS`):
+
+| Origin | Why |
+| --- | --- |
+| `https://fala243.github.io` | The GitHub Pages site (the path isn't part of an origin) |
+| `http://localhost:5500`, `http://127.0.0.1:5500` | VS Code Live Server |
+| `http://localhost:8000`, `http://127.0.0.1:8000` | `python -m http.server` |
+| the backend's own host | Pages served by Vercel itself / `vercel dev` |
+
+- A request from any other website gets **`403 ORIGIN_NOT_ALLOWED`**, and TMDB is never called. `Access-Control-Allow-Origin: *` is never used.
+- **Preflight** `OPTIONS` requests from allowed origins get `204` with `Access-Control-Allow-Methods: GET, OPTIONS` (cached by the browser for one day).
+- `Vary: Origin` stops Vercel's cache from reusing one origin's response for another.
+- Requests with no `Origin` header (curl, Postman, same-site pages) aren't browser cross-origin calls, so CORS doesn't apply to them. They still go through every validation rule below.
+- If your GitHub username or Pages URL ever changes, update `ALLOWED_ORIGINS` in `api/tmdb.js` **and** `VERCEL_BACKEND_ORIGIN` in `script.js`.
+
 ## Security: Why a Serverless Proxy?
 
-Anything in frontend JavaScript can be read by any visitor with the browser's developer tools. If the TMDB **API Read Access Token** were in `script.js`, anyone could copy and misuse it.
-
-```
-Browser (script.js)  →  /api/tmdb (Vercel function)  →  api.themoviedb.org/3
-                         • reads TMDB_READ_ACCESS_TOKEN
-                           from server environment variables
-                         • adds it as an Authorization header
-                         • returns only TMDB's JSON
-```
+Anything in frontend JavaScript can be read by any visitor with the browser's developer tools. If the TMDB **API Read Access Token** were in `script.js`, anyone could copy and misuse it. The proxy keeps it on the server: it reads `TMDB_READ_ACCESS_TOKEN` from environment variables, adds it as an `Authorization` header, and returns only TMDB's JSON.
 
 The proxy also protects itself and TMDB:
 
-- **GET only.** Other methods get `405`.
+- **Allowed origins only** (see CORS above).
+- **GET only** (plus CORS preflight `OPTIONS`). Other methods get `405`.
 - **Fixed destination.** The TMDB host and `/3` version are hard-coded, so the proxy can't be pointed at any other website.
 - **Allow-list.** `path` must exactly match an approved endpoint or a strict pattern such as `/movie/{positive number}`. Anything else, including full URLs, `../` tricks, or other TMDB endpoints, gets `400`.
 - **Parameter checks.** Every query parameter must be allowed for that endpoint, appear only once, and pass its validation (for example `page` must be 1–500). Unknown parameters such as `api_key` are rejected.
@@ -138,7 +180,14 @@ You need [Node.js](https://nodejs.org/) 18 or newer, a free [Vercel](https://ver
    On the first run, accept the prompts to link or create a Vercel project. If asked for a framework, choose **Other**, and leave the build command and output directory empty.
 5. Open **http://localhost:3000** (or the port `vercel dev` prints).
 
-Opening the HTML files directly (`file://`) or using a plain static server (e.g. Live Server) shows the layout, but the proxy won't run, so movies can't load. The app then shows *"The movie service is not available right now"*. Use `vercel dev`.
+**Two ways to run locally:**
+
+| Option | Command | Uses |
+| --- | --- | --- |
+| Full stack (recommended when changing `api/tmdb.js`) | `vercel dev` → http://localhost:3000 | your **local** proxy and `.env.local` |
+| Frontend only | VS Code **Live Server** (port 5500) or `python -m http.server 8000` | the **deployed** Vercel backend (no local token needed) |
+
+Opening the HTML files directly (`file://`) can't call any backend, so the app shows *"The movie service is not available right now"*. Use one of the options above.
 
 > **Windows tip:** during long `vercel dev` sessions, the CLI may leave one background `node` process per function call running. If requests get slow or the server reports *out of memory*, stop `vercel dev` (Ctrl + C) and start it again. This only affects local development, not the deployed site.
 
@@ -197,33 +246,52 @@ In **DevTools → Network**, click any `tmdb?path=…` request: there must be **
 - Clearing site data, or browsing in a private window, removes or isolates it.
 - If storage is blocked or full, the app explains why instead of failing silently. If saved data is damaged, a backup copy is kept under `movieDiscoveryWatchlist-backup`.
 
-## Deployment (Vercel)
+## Deployment
 
-The project is compatible with Vercel as-is: static HTML/CSS/JS are served from the project root, and every file in `api/` becomes a serverless function (`api/tmdb.js` → `/api/tmdb`). All file paths are relative (`styles.css`, `script.js`, `explore.html`) and the frontend calls the relative route `/api/tmdb`, so they work on any domain. No `vercel.json` is needed.
+Deployment has two independent parts. **Deploy the backend first**, because the GitHub Pages site needs it to load movies.
 
-1. **Check Git first.** Run `git status` and confirm `.env.local` is **not** listed (it's in `.gitignore`).
-2. **Push to GitHub.** Push the project to your GitHub repository.
-3. **Import into Vercel.** Go to [vercel.com/new](https://vercel.com/new), choose **Import Git Repository**, and select the repository.
-4. **Configure the project:**
-   - Framework Preset: **Other**
-   - Root Directory: the folder that contains `index.html` (usually `./`)
-   - Build Command: *leave empty* · Output Directory: *leave empty* · Install Command: *leave empty*
-5. **Add the environment variable before deploying:** expand **Environment Variables**, add **Key** `TMDB_READ_ACCESS_TOKEN` and **Value** your token, and make sure **Production** is selected (also tick **Preview** if you want preview deployments to load movies).
-6. Click **Deploy**.
-7. **If you add or change the variable later** (Project → **Settings → Environment Variables**), go to **Deployments**, open the latest one, and choose **Redeploy**. Existing deployments don't pick up changed variables.
+### Part A: Backend on Vercel (`api/tmdb.js`)
 
-From then on, every push to the main branch deploys to Production automatically.
+Vercel turns every file in `api/` into a serverless function (`api/tmdb.js` → `/api/tmdb`). No build step or `vercel.json` is needed.
 
-### Testing the deployed site
+1. **Connect the repository.** In Vercel, open the project **movie-discovery-capstone** (or create one at [vercel.com/new](https://vercel.com/new) → **Import Git Repository** → `Fala243/movie-discovery-capstone`). For an existing project: **Settings → Git → Connect Git Repository**.
+2. **Project settings:** Framework Preset **Other**; Root Directory `./`; Build, Output, and Install commands left **empty**.
+3. **Environment variable:** **Settings → Environment Variables** → Key `TMDB_READ_ACCESS_TOKEN`, Value = your TMDB API Read Access Token, Environment **Production** (optionally also Preview) → **Save**. Never put the token in any file in the repository.
+4. **Deploy:** **Deployments** → **Redeploy** the latest deployment, or push a commit to `main`. Every later push to `main` redeploys automatically.
+5. **Give the backend its fixed address:** **Settings → Domains** → add `fala243-movie-discovery-api.vercel.app` → **Add** (assign it to **Production**). This must match `VERCEL_BACKEND_ORIGIN` in `script.js`. If Vercel says the name is taken, choose another `*.vercel.app` name and update that one line in `script.js`.
+6. **Check it:** open https://fala243-movie-discovery-api.vercel.app/api/tmdb?path=/genre/movie/list. You should see genre JSON. If you see `SERVER_CONFIG_ERROR`, the token variable is missing: add it, then redeploy.
 
-On `https://<your-project>.vercel.app`:
+### Part B: Frontend on GitHub Pages
 
-1. **Home:** Trending and Popular load. In DevTools → Network, the `tmdb?path=…` requests return `200` and show no `Authorization` header or token.
-2. **Explore:** search, filter by genre, open details, play a trailer and close it, and change the Where to Watch country.
-3. **Watchlist:** save two movies, open the Watchlist page, and refresh: they're still there. Remove one, then refresh again.
-4. **Proxy safety:** open `https://<your-project>.vercel.app/api/tmdb?path=/account`. It should return `400` JSON.
-5. **Token not configured?** If every section says *"The movie service isn't set up correctly right now"*, the variable is missing for Production. Add it and redeploy. To see server errors, open Vercel → **Logs**.
-6. **Phone:** open the site on a real phone and repeat steps 1–3.
+All HTML, CSS, JavaScript, and image paths are **relative** (`styles.css`, `script.js`, `explore.html`), so they work under the repository subpath `/movie-discovery-capstone/`. `.nojekyll` makes GitHub serve the files exactly as committed.
+
+1. On GitHub, open the repository → **Settings → Pages**.
+2. Under **Build and deployment**: Source **Deploy from a branch**; Branch **`main`**, folder **`/ (root)`** → **Save**.
+3. Wait 1–2 minutes. The **Actions** tab shows a *pages build and deployment* run; when it's green, the site is live at **https://fala243.github.io/movie-discovery-capstone/**.
+4. From then on, every push to `main` republishes the site automatically.
+
+> Files like `api/tmdb.js` and `README.md` are also publicly visible on Pages, just as they are on GitHub. They contain no secrets: the token lives only in Vercel.
+
+### Testing the live site
+
+On **https://fala243.github.io/movie-discovery-capstone/** (DevTools open with F12):
+
+1. **Home:** Trending and Popular load. In **Network**, the `tmdb?path=…` requests go to `fala243-movie-discovery-api.vercel.app`, return `200`, include the response header `access-control-allow-origin: https://fala243.github.io`, and show no token anywhere.
+2. **Navigation:** Home / Explore / Watchlist links stay under `/movie-discovery-capstone/` and highlight the current page; styles and the favicon load (no 404s in Console).
+3. **Explore:** search "Avatar", change the genre, open **View Details**, click **Watch Trailer** and press play, then **Close Trailer** (sound stops). Change the **Where to Watch** country and check that Stream / Rent / Buy update.
+4. **Watchlist:** save two movies, open **Watchlist**, and **refresh**: they're still there. Remove one and refresh again.
+5. **Errors:** DevTools → Network → **Offline**, then search: you should get a friendly message and **Try Again**. Go back online and retry.
+6. **CORS protection:** opening the backend URL directly in a tab works (no `Origin` header). A fetch from any other website's console, e.g. on `https://example.com`, run `fetch('https://fala243-movie-discovery-api.vercel.app/api/tmdb?path=/movie/popular')`, is **blocked** by the browser.
+7. **Phone:** open the Pages URL on a real phone and repeat steps 1–4.
+
+**Troubleshooting**
+
+| Symptom | Fix |
+| --- | --- |
+| Every section says *"Could not connect"* and Console shows a **CORS** error | The Pages origin isn't in `ALLOWED_ORIGINS` (api/tmdb.js), or the backend domain in `script.js` is wrong. Fix it, push, and wait for both deployments. |
+| *"The movie service isn't set up correctly right now"* | `TMDB_READ_ACCESS_TOKEN` is missing in Vercel Production. Add it, then redeploy. |
+| Page has no styling / 404 | Pages source must be `main` / `(root)`; wait for the Actions run to finish, then hard-refresh (Ctrl + F5). |
+| Old version still showing | GitHub Pages caches for up to ~10 minutes; hard-refresh. |
 
 ## Known Limitations
 
@@ -234,6 +302,7 @@ On `https://<your-project>.vercel.app`:
 - **English UI only;** TMDB text is requested in its default language.
 - **Rate limits:** TMDB may limit very heavy use (`429`); the app then asks the visitor to wait and try again.
 - **CDN cache:** lists can be up to about 5 minutes old because of Vercel's caching.
+- **Two services:** the live site needs both GitHub Pages and the Vercel backend to be up. If the Vercel project is paused or the token is removed, the pages still load but movies don't.
 - The app needs **JavaScript** for movie data. Without it, the pages, navigation, and layout still display.
 
 ## Attribution

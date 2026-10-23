@@ -26,12 +26,69 @@
      and pass its validation check. Anything else is rejected.
    - The TMDB host and API version (/3) are fixed here on the server,
      so the proxy cannot be pointed at any other URL.
+   - CORS: browsers may only call this proxy from the exact origins in
+     ALLOWED_ORIGINS (GitHub Pages + local development) or from the same
+     site that hosts it. Pages on any other website get 403.
    ========================================================================== */
 
 'use strict';
 
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const REQUEST_TIMEOUT_MS = 8000;
+
+
+/* ----- CORS (Cross-Origin Resource Sharing) -----
+   An "origin" is scheme + host + port, e.g. https://fala243.github.io
+   (the /movie-discovery-capstone/ path is NOT part of the origin).
+
+   Browsers block a page on one origin from reading responses from another
+   origin unless the server says it's allowed, using the
+   Access-Control-Allow-Origin header. The frontend lives on GitHub Pages
+   and this proxy lives on Vercel, so the proxy must name GitHub Pages
+   explicitly. We never use "*" (any website), because then any site could
+   use our proxy and our TMDB quota.
+
+   Browsers send the page's origin in the "Origin" request header:
+   - allowed origin  -> we echo it back in Access-Control-Allow-Origin
+   - other origin    -> 403, and TMDB is never called
+   - no Origin       -> a same-site request (e.g. the copy of the site that
+                        Vercel itself hosts, or `vercel dev`) or a tool like
+                        curl/Postman; CORS doesn't apply, so it continues.
+
+   Only add exact origins here (no wildcards, no trailing slash). */
+const ALLOWED_ORIGINS = new Set([
+  'https://fala243.github.io',  // GitHub Pages (production frontend)
+  'http://localhost:5500',      // VS Code Live Server
+  'http://127.0.0.1:5500',
+  'http://localhost:8000',      // python -m http.server
+  'http://127.0.0.1:8000',
+]);
+
+// true if this origin may call the proxy from a browser
+function isAllowedOrigin(origin, host) {
+  if (ALLOWED_ORIGINS.has(origin)) return true;
+  // Same site: a page served by this Vercel deployment (or `vercel dev`)
+  // calling its own /api/tmdb. Browsers usually omit Origin then, but
+  // some send it, so it is accepted when the host matches exactly.
+  try {
+    return typeof host === 'string' && new URL(origin).host === host;
+  } catch {
+    return false; // "null" (file://) or malformed origins
+  }
+}
+
+/* Adds CORS headers. Returns false if the browser origin isn't allowed.
+   "Vary: Origin" tells caches (Vercel's CDN, browsers) that the reply
+   depends on the Origin header, so a reply cached for one origin is never
+   reused for another. */
+function applyCors(req, res) {
+  res.setHeader('Vary', 'Origin');
+  const origin = req.headers && req.headers.origin;
+  if (!origin) return true;
+  if (!isAllowedOrigin(origin, req.headers.host)) return false;
+  res.setHeader('Access-Control-Allow-Origin', origin);
+  return true;
+}
 
 
 /* ----- Validation helpers ----- */
@@ -189,7 +246,7 @@ function validateRequest(query) {
 /* ----- Error response helper -----
    Every error uses the same JSON shape: { error: { code, message } }
    The frontend uses "code" to choose a friendly message.
-   Codes: METHOD_NOT_ALLOWED 405, INVALID_REQUEST 400, NOT_FOUND 404,
+   Codes: ORIGIN_NOT_ALLOWED 403, METHOD_NOT_ALLOWED 405, INVALID_REQUEST 400, NOT_FOUND 404,
    RATE_LIMITED 429, SERVER_CONFIG_ERROR 500, INTERNAL_ERROR 500,
    TMDB_AUTH_FAILED / TMDB_UNREACHABLE / TMDB_BAD_RESPONSE / TMDB_ERROR 502,
    TMDB_TIMEOUT 504. Messages never include the token or TMDB's details. */
@@ -218,9 +275,29 @@ module.exports = async function handler(req, res) {
 async function handleRequest(req, res) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
 
+  // 0. CORS: refuse browser pages from websites that aren't on the list
+  //    (checked before anything else, so TMDB is never called for them)
+  if (!applyCors(req, res)) {
+    return sendError(res, 403, 'ORIGIN_NOT_ALLOWED', 'This website is not allowed to use this API.');
+  }
+
+  // Preflight: before some cross-origin requests the browser first sends
+  // OPTIONS to ask "may I?". We answer 204 (no content) with what is
+  // allowed. Our GET with only an Accept header usually needs no
+  // preflight, but answering correctly keeps the proxy standards-compliant.
+  // Max-Age lets the browser remember the answer for a day.
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Allow', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Accept, Content-Type');
+    res.setHeader('Access-Control-Max-Age', '86400');
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(204).end();
+  }
+
   // 1. Only allow GET
   if (req.method !== 'GET') {
-    res.setHeader('Allow', 'GET');
+    res.setHeader('Allow', 'GET, OPTIONS');
     return sendError(res, 405, 'METHOD_NOT_ALLOWED', 'Only GET requests are allowed.');
   }
 

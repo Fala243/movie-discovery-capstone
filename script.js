@@ -17,9 +17,34 @@
 
 /* ----- 1. Configuration ----- */
 
+/* Where is the secure proxy?
+   The frontend can be served from two kinds of places:
+   1. Vercel itself (the deployed site or `vercel dev`): the proxy is on the
+      SAME website, so the relative path "/api/tmdb" works.
+   2. A static host with no serverless functions: GitHub Pages
+      (https://fala243.github.io/movie-discovery-capstone/) or a simple local
+      server such as VS Code Live Server (port 5500) or
+      `python -m http.server` (port 8000). These must call the deployed
+      Vercel proxy by its full URL. The proxy only accepts these origins
+      (see ALLOWED_ORIGINS in api/tmdb.js).
+   The token is never involved here: it stays in Vercel's environment
+   variables, and this URL is public on purpose. */
+const VERCEL_BACKEND_ORIGIN = 'https://fala243-movie-discovery-api.vercel.app';
+const STATIC_DEV_PORTS = ['5500', '8000']; // must match ALLOWED_ORIGINS in api/tmdb.js
+
+function getApiBaseUrl() {
+  const { hostname, port } = window.location;
+  const isGitHubPages = hostname.endsWith('.github.io');
+  const isLocalStaticServer = (hostname === 'localhost' || hostname === '127.0.0.1')
+    && STATIC_DEV_PORTS.includes(port);
+  return isGitHubPages || isLocalStaticServer
+    ? `${VERCEL_BACKEND_ORIGIN}/api/tmdb` // cross-origin: the Vercel backend
+    : '/api/tmdb';                        // same origin: Vercel or `vercel dev`
+}
+
 const CONFIG = {
-  // Our serverless proxy route (same website, see api/tmdb.js).
-  API_BASE_URL: '/api/tmdb',
+  // Our serverless proxy route (see getApiBaseUrl above and api/tmdb.js).
+  API_BASE_URL: getApiBaseUrl(),
 
   // Base URL for TMDB poster images (public, no token required).
   // A size such as "w342" goes between this and the poster path.
