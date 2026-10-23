@@ -471,7 +471,7 @@ function createPosterElement(movie) {
   if (movie.posterUrl) {
     const img = document.createElement('img');
     img.src = movie.posterUrl;
-    img.alt = `Poster for ${movie.title}`;
+    img.alt = `Movie poster for ${movie.title}`;
     // width/height tell the browser the image shape before it downloads
     img.width = 342;
     img.height = 513;
@@ -1680,7 +1680,7 @@ function renderMovieDetails(details) {
   if (posterUrl) {
     const img = document.createElement('img');
     img.src = posterUrl;
-    img.alt = `Poster for ${details.title}`;
+    img.alt = `Movie poster for ${details.title}`;
     img.width = 500;
     img.height = 750;
     img.addEventListener('error', () => {

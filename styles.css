@@ -757,9 +757,11 @@ p {
   border-color: var(--color-border-hover);
 }
 
-/* Blue border + soft glow instead of the default outline */
+/* Blue outline + border + soft glow. The outline is kept (not removed)
+   because Windows High Contrast mode hides box-shadow glows. */
 .form-control:focus-visible {
-  outline: none;
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
   border-color: var(--color-accent);
   box-shadow: 0 0 0 4px var(--color-accent-glow);
 }
