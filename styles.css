@@ -1,0 +1,2185 @@
+/* ==========================================================================
+   styles.css — Shared styles for all pages (Step 4: Cinematic UI)
+   Purpose: Colors, typography, layout, and reusable component classes for
+   the Movie Discovery app.
+
+   Mobile-first: the base rules are written for small phones (375px).
+   @media (min-width: …) blocks at the bottom ADD rules as the screen grows,
+   so small devices never download layout rules they can't use.
+
+   Motion (Step 13): every animation is short, subtle, and uses only
+   "transform" and "opacity" where possible. Those two properties can be
+   animated by the graphics card without recalculating the page layout,
+   so they stay smooth even on slower phones. All motion is switched off
+   for visitors who prefer reduced motion (see the end of this file).
+
+   Two tools are used:
+   - A TRANSITION smoothly changes a property from its old value to a new
+     one when something changes (e.g. on :hover). You list WHAT changes
+     and HOW LONG: transition: transform 200ms ease;
+   - @keyframes defines a named animation with a start ("from") and end
+     ("to") state. The "animation" property plays it on an element, e.g.
+     animation: fade-up 600ms ease-out;
+   ========================================================================== */
+
+
+/* ----- 1. Design tokens (CSS custom properties) -----
+   Every color, size, and shadow lives here. Components use var(--name),
+   so changing one value here restyles the whole app consistently. */
+:root {
+  /* Backgrounds: a near-black base with deep navy layers on top */
+  --color-bg: #05070d;
+  --color-bg-navy: #0a1122;
+  --color-surface: #0f1729;
+  --color-surface-raised: #16203a;
+  --color-border: #1f2a44;
+  --color-border-strong: #2d3b5e;
+
+  /* Text: white headings, soft white body, muted gray secondary text */
+  --color-heading: #ffffff;
+  --color-text: #e6e9f2;
+  --color-text-muted: #9aa3b8;
+  --color-text-subtle: #7883a0;
+
+  /* Electric-blue accents.
+     --color-accent is bright, for text and icons on dark backgrounds.
+     --color-accent-strong is deeper, so white button text stays readable
+     (it passes the WCAG AA contrast check). */
+  --color-accent: #4d9bff;
+  --color-accent-strong: #1f6feb;
+  --color-accent-hover: #1858c4;
+  --color-accent-soft: rgba(77, 155, 255, 0.12);
+  --color-accent-glow: rgba(77, 155, 255, 0.35);
+
+  /* Errors */
+  --color-error-bg: rgba(255, 92, 92, 0.1);
+  --color-error-border: rgba(255, 92, 92, 0.45);
+  --color-error-text: #ffb3b3;
+
+  /* Inter is loaded from Google Fonts in each page's <head>.
+     If it fails to load, the system font is used instead. */
+  --font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+
+  /* Rounded corners */
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+
+  /* Spacing scale: using the same few sizes everywhere keeps rhythm consistent */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2.5rem;
+  --space-2xl: 4rem;
+
+  --max-width: 1320px;
+
+  --shadow-card: 0 14px 34px rgba(0, 0, 0, 0.5);
+  --transition: 200ms ease;
+
+  /* Motion tokens (Step 13). "ease-out" curves start fast and slow down
+     gently at the end, which feels natural for things entering the screen. */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-fast: 150ms;
+  --duration-enter: 600ms;
+  /* Must match MODAL_CLOSE_MS in script.js */
+  --duration-modal-close: 180ms;
+}
+
+/* Shared entrance animations, reused by several components below */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Smooth scrolling (e.g. after the skip link) only for visitors who have
+   NOT asked their device to reduce motion. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+
+/* ----- 2. Base reset & typography ----- */
+
+/* border-box: width includes padding and border, which makes sizing predictable */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-family);
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--color-text);
+  /* Subtle gradient: a soft blue glow at the top fading from navy into near-black */
+  background-color: var(--color-bg);
+  background-image:
+    radial-gradient(ellipse 80% 40rem at 50% -10rem, rgba(31, 111, 235, 0.16), transparent 70%),
+    linear-gradient(180deg, var(--color-bg-navy) 0, var(--color-bg) 60rem);
+  background-repeat: no-repeat;
+  -webkit-font-smoothing: antialiased;
+  /* Flexbox column keeps the footer at the bottom on short pages */
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+main {
+  flex: 1;
+  padding-bottom: var(--space-xl);
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+a {
+  color: var(--color-accent);
+}
+
+h1,
+h2,
+h3 {
+  margin: 0 0 var(--space-sm);
+  color: var(--color-heading);
+  line-height: 1.15;
+  /* Slightly tighter letter spacing makes large headings look more polished */
+  letter-spacing: -0.02em;
+}
+
+/* clamp(min, preferred, max) scales text smoothly between screen sizes */
+h1 {
+  font-size: clamp(1.875rem, 1.4rem + 2vw, 2.75rem);
+  font-weight: 800;
+}
+
+h2 {
+  font-size: clamp(1.25rem, 1.1rem + 0.6vw, 1.625rem);
+  font-weight: 700;
+}
+
+p {
+  margin: 0 0 var(--space-md);
+}
+
+::selection {
+  background: var(--color-accent-strong);
+  color: #ffffff;
+}
+
+
+/* ----- 3. Accessibility helpers ----- */
+
+/* Clear, visible focus outline for keyboard users */
+:focus-visible {
+  outline: 3px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+/* Skip link: hidden above the screen until it receives keyboard focus.
+   It slides in with transform (no layout recalculation) instead of
+   changing "top". */
+.skip-link {
+  position: absolute;
+  left: var(--space-md);
+  top: var(--space-md);
+  z-index: 100;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-strong);
+  color: #ffffff;
+  font-weight: 700;
+  text-decoration: none;
+  transform: translateY(calc(-100% - 2rem));
+  transition: transform var(--transition);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+/* The skip link (and script.js) move focus to <main tabindex="-1">.
+   <main> is a region, not a control, so it doesn't need a focus ring. */
+#main-content:focus {
+  outline: none;
+}
+
+/* Hides text visually but keeps it available to screen readers */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Make sure the HTML "hidden" attribute always wins over display rules */
+[hidden] {
+  display: none !important;
+}
+
+
+/* ----- 4. Layout ----- */
+
+/* Centers content and limits line length on very wide screens.
+   The side padding stops content from touching the screen edges on phones. */
+.container {
+  width: 100%;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 var(--space-md);
+}
+
+/* Small uppercase label above headings, e.g. "DISCOVER" */
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin: 0 0 var(--space-sm);
+  color: var(--color-accent);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* Heading block at the top of the Explore and Watchlist pages */
+.page-header {
+  padding: var(--space-xl) 0 var(--space-lg);
+}
+
+.page-intro {
+  max-width: 60ch;
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+/* Heading row above each movie grid */
+.section-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+/* A short electric-blue bar before section titles adds visual hierarchy */
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin: 0;
+}
+
+.section-title::before {
+  content: "";
+  width: 4px;
+  height: 1.1em;
+  flex-shrink: 0;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(180deg, var(--color-accent), var(--color-accent-strong));
+}
+
+.section-subtitle {
+  margin: var(--space-xs) 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+}
+
+
+/* ----- 5. Header & navigation ----- */
+
+/* "sticky" keeps the header visible while scrolling.
+   The see-through background + blur lets content glide underneath it. */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background-color: rgba(5, 7, 13, 0.82);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* Flexbox puts the logo and navigation on one row.
+   On narrow phones flex-wrap lets the navigation drop to a second row. */
+.header-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm) var(--space-md);
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  color: var(--color-heading);
+  font-size: 1.125rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+}
+
+.logo-accent {
+  color: var(--color-accent);
+}
+
+/* Logo icon: a blue rounded square with a "play" triangle, drawn with CSS */
+.logo-mark {
+  position: relative;
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  border-radius: 9px;
+  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-strong) 100%);
+  box-shadow: 0 6px 18px rgba(31, 111, 235, 0.45);
+}
+
+.logo-mark::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 54%;
+  width: 0.7rem;
+  height: 0.8rem;
+  background: #ffffff;
+  /* clip-path cuts the square into a triangle */
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+  transform: translate(-50%, -50%);
+}
+
+/* On phones the navigation fills its own row */
+.main-nav {
+  width: 100%;
+}
+
+/* On phones, the three links share the row equally, like a segmented control */
+.nav-list {
+  display: flex;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: var(--space-xs);
+  list-style: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background-color: rgba(15, 23, 41, 0.7);
+}
+
+.nav-list li {
+  flex: 1;
+}
+
+.nav-link {
+  position: relative;
+  isolation: isolate; /* keeps the ::before pill behind the link text */
+  display: block;
+  padding: 0.4rem 0.875rem;
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  transition: color var(--transition), background-color var(--transition), transform var(--duration-fast) ease;
+}
+
+.nav-link:hover {
+  color: var(--color-heading);
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+/* A quick "press" when the link is clicked or tapped */
+.nav-link:active {
+  transform: scale(0.97);
+}
+
+/* Active-page indicator: a blue pill drawn by ::before BEHIND the text.
+   Because it is its own layer, it can fade and grow in with opacity and
+   transform only (no colour or layout animation). */
+.nav-link::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background-color: var(--color-accent-strong);
+  box-shadow: 0 4px 14px rgba(31, 111, 235, 0.4);
+  opacity: 0;
+  transform: scale(0.85);
+  transition: opacity var(--transition), transform var(--transition);
+}
+
+/* Active page: aria-current="page" is already in the HTML, so the same
+   attribute that helps screen readers also drives the visual highlight. */
+.nav-link[aria-current="page"] {
+  color: #ffffff;
+}
+
+.nav-link[aria-current="page"]::before {
+  opacity: 1;
+  transform: scale(1);
+  /* Plays once when the page loads. "backwards" applies the "from" state
+     only before the animation starts; afterwards the normal rule wins. */
+  animation: nav-pill-in 450ms var(--ease-out) 150ms backwards;
+}
+
+@keyframes nav-pill-in {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+}
+
+
+/* ----- 6. Buttons (reusable) -----
+   .button                → primary electric-blue button
+   .button-secondary      → outlined button for less important actions
+   .button-large          → bigger size for hero calls to action
+   .button-small          → compact size for movie card actions
+   .button-block          → stretches to the full width of its container */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  min-height: 2.75rem; /* 44px: a comfortable touch target */
+  padding: 0.625rem 1.25rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-accent-strong);
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(31, 111, 235, 0.35);
+  /* Transition list: only these properties animate when they change.
+     Listing them (instead of "all") avoids animating anything by accident. */
+  transition:
+    background-color var(--transition),
+    border-color var(--transition),
+    color var(--transition),
+    box-shadow var(--transition),
+    opacity var(--transition),
+    transform var(--duration-fast) ease;
+}
+
+.button:hover {
+  background-color: var(--color-accent-hover);
+  box-shadow: 0 10px 28px rgba(31, 111, 235, 0.5);
+}
+
+/* The small lift only happens on devices that can really hover (mouse,
+   trackpad). On touchscreens a tap would otherwise leave the button
+   "stuck" in its hover state. Colour changes above still work everywhere. */
+@media (hover: hover) {
+  .button:hover {
+    transform: translateY(-1px);
+  }
+}
+
+/* A gentle "press" for mouse, touch, and keyboard (Space/Enter) */
+.button:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.button-secondary {
+  background-color: rgba(255, 255, 255, 0.04);
+  border-color: var(--color-border-strong);
+  color: var(--color-heading);
+  box-shadow: none;
+}
+
+.button-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.09);
+  border-color: var(--color-accent);
+  box-shadow: none;
+}
+
+.button-large {
+  min-height: 3.25rem;
+  padding: 0.875rem 1.75rem;
+  font-size: 1rem;
+}
+
+.button-small {
+  min-height: 2.25rem;
+  padding: 0.4rem 0.875rem;
+  font-size: 0.8125rem;
+}
+
+.button-block {
+  width: 100%;
+}
+
+
+/* ----- 7. Homepage hero ----- */
+
+/* A large rounded panel built only from CSS gradients (no images).
+   Layered radial gradients create blue "projector light" glows. */
+.hero {
+  position: relative;
+  isolation: isolate; /* keeps the ::before decoration behind the content */
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  min-height: clamp(24rem, 62vh, 34rem);
+  margin: var(--space-lg) 0 var(--space-2xl);
+  padding: var(--space-2xl) var(--space-lg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(circle at 88% 12%, rgba(77, 155, 255, 0.38), transparent 42%),
+    radial-gradient(circle at 0% 105%, rgba(31, 111, 235, 0.28), transparent 50%),
+    linear-gradient(135deg, #0c1630 0%, #070b16 60%, var(--color-bg) 100%);
+  box-shadow: var(--shadow-card);
+}
+
+/* Faint vertical lines, like a film strip, fading out toward the text */
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 72px);
+  -webkit-mask-image: linear-gradient(to left, #000 0%, transparent 75%);
+  mask-image: linear-gradient(to left, #000 0%, transparent 75%);
+}
+
+.hero-content {
+  max-width: 40rem;
+}
+
+/* Small pill label above the hero headline */
+.hero .eyebrow {
+  padding: 0.35rem 0.8rem;
+  border: 1px solid rgba(77, 155, 255, 0.35);
+  border-radius: var(--radius-pill);
+  background-color: var(--color-accent-soft);
+}
+
+.hero-title {
+  margin-bottom: var(--space-md);
+  font-size: clamp(2.25rem, 1.4rem + 4vw, 4.25rem);
+  line-height: 1.05;
+}
+
+/* Gradient-filled text. The plain color is a fallback for older browsers. */
+.text-gradient {
+  color: var(--color-accent);
+  background: linear-gradient(90deg, #ffffff 0%, var(--color-accent) 70%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero-text {
+  max-width: 34rem;
+  margin-bottom: var(--space-xl);
+  color: var(--color-text-muted);
+  font-size: clamp(1rem, 0.95rem + 0.3vw, 1.1875rem);
+}
+
+/* Flexbox lines up the buttons; wrap stacks them on narrow phones */
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-md);
+}
+
+/* Hero entrance (Step 13): label, heading, description, and buttons fade
+   in and slide up one after another ("staggered"). Each one uses the same
+   fade-up @keyframes but starts a little later (animation-delay).
+   "backwards" fill mode applies the invisible "from" state during the
+   delay, then hands control back to the normal styles when it finishes,
+   so nothing stays hidden. This is pure CSS, so it needs no JavaScript;
+   if animations are off, the text is simply shown straight away. */
+.hero .eyebrow,
+.hero-title,
+.hero-text,
+.hero-actions {
+  animation: fade-up var(--duration-enter) var(--ease-out) backwards;
+}
+
+.hero-title {
+  animation-delay: 100ms;
+}
+
+.hero-text {
+  animation-delay: 200ms;
+}
+
+.hero-actions {
+  animation-delay: 320ms;
+}
+
+
+/* ----- 8. Search controls (explore.html) ----- */
+.search-panel {
+  margin-bottom: var(--space-xl);
+  padding: var(--space-lg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, var(--color-surface-raised) 0%, var(--color-surface) 100%);
+  box-shadow: var(--shadow-card);
+}
+
+/* CSS Grid: one column on phones. A media query below turns this into
+   one row (title | genre | button) on tablets and desktops. */
+.search-form {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  /* min-width: 0 lets fields shrink inside the grid instead of overflowing */
+  min-width: 0;
+}
+
+.form-field label {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Shared look for text inputs and dropdowns (add class="form-control") */
+.form-control {
+  width: 100%;
+  min-height: 3rem;
+  padding: 0 var(--space-md);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius);
+  background-color: rgba(5, 7, 13, 0.65);
+  color: var(--color-heading);
+  font: inherit;
+  transition: border-color var(--transition), box-shadow var(--transition), background-color var(--transition), opacity var(--transition);
+}
+
+.form-control::placeholder {
+  color: var(--color-text-subtle);
+}
+
+.form-control:hover {
+  border-color: #3b4c75;
+}
+
+/* Blue border + soft glow instead of the default outline */
+.form-control:focus-visible {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 4px var(--color-accent-glow);
+}
+
+/* Invalid search (script.js sets aria-invalid="true"): a red border.
+   The error message above the results explains the problem in words,
+   so colour is never the only signal. */
+.form-control[aria-invalid="true"] {
+  border-color: var(--color-error-border);
+}
+
+/* Magnifying-glass icon drawn with a small inline SVG (no external image) */
+.search-input {
+  padding-left: 2.75rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239aa3b8' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 1rem center;
+  background-size: 1.125rem;
+}
+
+/* Hides the browser's built-in "x" button in search inputs for a cleaner look */
+.search-input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Custom dropdown arrow: remove the browser default, then draw our own */
+.select-control {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 2.75rem;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239aa3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1.125rem;
+}
+
+/* Disabled fields (e.g. the genre dropdown while genres are loading) */
+.form-control:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Small status line under a field, e.g. "Loading genres…" */
+.field-hint {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}
+
+.field-hint:empty {
+  display: none;
+}
+
+.field-hint.is-error {
+  color: var(--color-error-text);
+}
+
+/* Dark dropdown options (supported in Chrome, Edge, and Firefox) */
+.select-control option {
+  background-color: var(--color-surface);
+  color: var(--color-text);
+}
+
+.search-form .button {
+  min-height: 3rem;
+  width: 100%;
+  border-radius: var(--radius);
+}
+
+.results-summary {
+  margin: var(--space-xs) 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+}
+
+/* Hide the summary line until script.js puts text in it */
+.results-summary:empty {
+  display: none;
+}
+
+
+/* ----- 9. Status messages: loading indicator & error message ----- */
+.status-message {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0 0 var(--space-lg);
+  padding: 0.875rem var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+}
+
+/* Spinning ring drawn with borders: only the top edge is blue */
+.loading-indicator::before {
+  content: "";
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+  border: 2px solid var(--color-border-strong);
+  border-top-color: var(--color-accent);
+  border-radius: 50%;
+  /* A steady, unhurried spin (rotation is a transform, so it's cheap) */
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.status-error {
+  border-color: var(--color-error-border);
+  background-color: var(--color-error-bg);
+  color: var(--color-error-text);
+  /* Fades in when shown (opacity only). The text is in the page the whole
+     time, so screen readers announce it immediately either way. */
+  animation: fade-in 250ms ease-out;
+}
+
+/* Round "!" icon before the error text */
+.status-error::before {
+  content: "!";
+  display: grid;
+  place-items: center;
+  width: 1.375rem;
+  height: 1.375rem;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background-color: var(--color-error-text);
+  color: var(--color-bg);
+  font-size: 0.875rem;
+  font-weight: 800;
+}
+
+
+/* ----- 10. Empty state (watchlist.html) ----- */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+  padding: var(--space-2xl) var(--space-lg);
+  text-align: center;
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(circle at 50% 0%, var(--color-accent-soft), transparent 65%),
+    var(--color-surface);
+}
+
+.empty-state-icon {
+  display: grid;
+  place-items: center;
+  width: 4rem;
+  height: 4rem;
+  margin-bottom: var(--space-sm);
+  border: 1px solid rgba(77, 155, 255, 0.35);
+  border-radius: 50%;
+  background-color: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.empty-state-title {
+  margin: 0;
+  color: var(--color-heading);
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.empty-state-text {
+  max-width: 36ch;
+  margin: 0 0 var(--space-md);
+  color: var(--color-text-muted);
+}
+
+
+/* ----- 11. Movie sections & responsive card grid ----- */
+.movie-section {
+  margin-bottom: var(--space-2xl);
+}
+
+/* CSS Grid with a fixed number of columns per screen size:
+   1 on small phones, 2 on larger phones (480px+), then 3, 4, and 5
+   columns as the screen grows (see section 15).
+   minmax(0, 1fr) means "equal shares, allowed to shrink", which prevents
+   long titles from pushing the grid wider than the screen. */
+.movie-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-md);
+}
+
+/* ----- Loading placeholders (Step 12) -----
+   Skeleton cards copy the shape of real movie cards (horizontal on small
+   phones, tall from 480px), so the page barely moves when cards arrive.
+   A soft light band slides across them; it is switched off for visitors
+   who prefer reduced motion (see the end of this file). */
+.grid-loading-status {
+  grid-column: 1 / -1; /* spans the whole grid row */
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+}
+
+.skeleton-card {
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr);
+  grid-template-rows: auto auto 1fr;
+  gap: 0.5rem 0.75rem;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--color-surface-raised) 0%, var(--color-surface) 100%);
+}
+
+.skeleton-block {
+  border-radius: 4px;
+  /* A soft, slow shimmer: low contrast and 1.8s per sweep keeps it calm */
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.04) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.8s ease-in-out infinite;
+}
+
+/* Skeleton cards fade in gently instead of popping in */
+.skeleton-card {
+  animation: fade-in 300ms ease-out;
+}
+
+.skeleton-poster {
+  grid-row: 1 / span 3;
+  aspect-ratio: 2 / 3;
+  border-radius: 0;
+}
+
+.skeleton-line {
+  height: 0.875rem;
+  margin: 0.875rem 0.75rem 0 0;
+}
+
+.skeleton-line-short {
+  width: 45%;
+  margin-top: 0;
+}
+
+@keyframes skeleton-shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
+
+/* Error boxes with a "Try Again" button: text and button wrap neatly */
+.status-message {
+  flex-wrap: wrap;
+}
+
+.status-message .status-text {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.status-message .retry-button {
+  flex-shrink: 0;
+}
+
+/* Message shown inside a grid: no movies, loading, or an error */
+.movie-grid-message {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: var(--space-xl) var(--space-lg);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius);
+  background-color: rgba(15, 23, 41, 0.45);
+  color: var(--color-text-muted);
+  text-align: center;
+  animation: fade-in 300ms ease-out; /* "No movies found" etc. fade in */
+}
+
+/* Loading and error versions (Trending / Popular sections).
+   Flexbox stacks the text and the "Try again" button in the center. */
+.movie-grid-message.is-loading,
+.movie-grid-message.is-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  min-height: 11rem;
+}
+
+.movie-grid-message p {
+  margin: 0;
+}
+
+/* The spinner from .loading-indicator, placed beside the text */
+.movie-grid-message .loading-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.movie-grid-message.is-error {
+  border-style: solid;
+  border-color: var(--color-error-border);
+  background-color: var(--color-error-bg);
+  color: var(--color-error-text);
+}
+
+/* Placeholder shown while a grid has no cards yet.
+   The text comes from the grid's data-placeholder attribute in the HTML.
+   As soon as script.js adds a card, :empty stops matching and it disappears. */
+.movie-grid[data-placeholder]:empty::before {
+  content: attr(data-placeholder);
+  grid-column: 1 / -1; /* span every column */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 11rem;
+  padding: var(--space-lg);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius);
+  background-color: rgba(15, 23, 41, 0.45);
+  color: var(--color-text-subtle);
+  font-size: 0.9375rem;
+  text-align: center;
+}
+
+
+/* ----- 12. Movie card (reusable; built by createMovieCard() in script.js) -----
+   Structure:
+   <article class="movie-card" data-movie-id="19995">
+     <div class="movie-card-poster">
+       <img src="…" alt="Poster for …" loading="lazy">  (or <div class="poster-fallback">)
+       <span class="rating-badge">7.6<span class="rating-scale">/10</span></span>
+     </div>
+     <div class="movie-card-body">
+       <h3 class="movie-card-title">…</h3>
+       <p class="movie-card-meta"><time datetime="2009-12-15">2009</time></p>
+       <p class="movie-card-overview">…</p>
+       (future: <div class="card-actions">…buttons…</div>)
+     </div>
+   </article>
+
+   Small phones (under 480px): the card is a horizontal row with a narrow
+   poster on the left, so one card per row doesn't make a giant poster.
+   From 480px up, section 15 switches it to the classic tall poster card. */
+.movie-card {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  min-width: 0;
+  overflow: hidden; /* clips the poster to the rounded corners */
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--color-surface-raised) 0%, var(--color-surface) 100%);
+  /* Card transitions: the lift uses transform (cheap for the browser);
+     the border colour and shadow fade alongside it. */
+  transition:
+    transform 250ms var(--ease-out),
+    border-color 250ms ease,
+    box-shadow 250ms ease;
+}
+
+/* Subtle lift and blue glow. Hover effects are limited to real hover
+   devices (a mouse), so touchscreens never get a "stuck" lifted card.
+   Nothing important depends on hovering: every action is a visible button. */
+@media (hover: hover) {
+  .movie-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(77, 155, 255, 0.55);
+    box-shadow: var(--shadow-card), 0 0 0 1px var(--color-accent-glow);
+  }
+
+  /* Gentle poster zoom. scale() grows width and height equally and the
+     poster box has overflow: hidden, so the image is never stretched or
+     distorted; the edges are simply trimmed a little. */
+  .movie-card:hover .movie-card-poster img {
+    transform: scale(1.05);
+  }
+}
+
+/* Keyboard users get the same lift when a button inside the card has
+   keyboard focus. :has(:focus-visible) ignores mouse clicks and taps, so
+   the card doesn't stay lifted after tapping "Save" on a phone. */
+.movie-card:has(:focus-visible) {
+  transform: translateY(-4px);
+  border-color: rgba(77, 155, 255, 0.55);
+  box-shadow: var(--shadow-card), 0 0 0 1px var(--color-accent-glow);
+}
+
+/* Card entrance (Step 13): script.js adds .is-entering to NEW cards
+   (after a search, a genre change, Trending/Popular loading, or new
+   watchlist items) and sets --stagger to the card's position (0, 1, 2…),
+   so the cards appear one after another like a wave.
+   "backwards" applies the invisible starting state only during the delay;
+   when the animation ends, normal styles (and the hover lift) take over.
+   script.js removes the class afterwards, so the animation never replays
+   when the same card is merely updated (e.g. the Save button changing). */
+.movie-card.is-entering {
+  animation: card-enter 450ms var(--ease-out) backwards;
+  animation-delay: calc(var(--stagger, 0) * 40ms);
+}
+
+@keyframes card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+/* Poster container: aspect-ratio reserves a 2:3 space (the shape of a movie
+   poster) before the image loads, so the page doesn't jump around. */
+.movie-card-poster {
+  position: relative;
+  flex-shrink: 0;
+  width: 7.5rem; /* narrow poster column on small phones */
+  aspect-ratio: 2 / 3;
+  align-self: flex-start;
+  overflow: hidden;
+  background: linear-gradient(160deg, #18233f 0%, #0a1020 100%);
+}
+
+.movie-card-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* fills the box without stretching the image */
+  transition: transform 400ms var(--ease-out); /* zoom: see the hover rules above */
+}
+
+/* Dark fade at the bottom of the poster for depth */
+.movie-card-poster::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 35%;
+  background: linear-gradient(0deg, rgba(5, 7, 13, 0.75), transparent);
+  pointer-events: none;
+}
+
+/* Shown instead of an <img> when TMDB has no poster for a movie */
+.poster-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  color: var(--color-text-subtle);
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  text-align: center;
+}
+
+/* Film-frame icon above the fallback text, drawn with an inline SVG */
+.poster-fallback::before {
+  content: "";
+  width: 2.25rem;
+  height: 2.25rem;
+  opacity: 0.7;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237883a0' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='2'/%3E%3Cpath d='M7 3v18M17 3v18M3 8h4M3 16h4M17 8h4M17 16h4'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+.movie-card-body {
+  display: flex;
+  flex: 1; /* fills leftover space so cards in a row line up */
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 0; /* lets long text wrap instead of widening the card */
+  padding: 0.75rem;
+}
+
+/* Long titles are cut off after two lines with "…" */
+.movie-card-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  margin: 0;
+  color: var(--color-heading);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.movie-card-meta {
+  margin: 0;
+  color: var(--color-accent);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+/* Short description: cut off after 4 lines with "…" so cards stay even.
+   The full text stays in the page for screen readers and future details. */
+.movie-card-overview {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  overflow: hidden;
+  margin: var(--space-xs) 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+/* margin-top: auto pushes the actions to the bottom of the card.
+   The buttons are stacked (one per row) because cards are narrow. */
+.card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin-top: auto;
+  padding-top: var(--space-sm);
+}
+
+/* ----- Watchlist button (Step 9) -----
+   Default (not saved): solid blue "Save to Watchlist" with an outline bookmark.
+   .is-saved:  soft blue "Saved" with a filled bookmark.
+   .is-remove: outlined "Remove from Watchlist" (Watchlist page). */
+/* Slightly tighter spacing so "Remove from Watchlist" fits on one line in
+   narrow cards (it can still wrap neatly on very small screens). */
+.watchlist-button {
+  gap: 0.375rem;
+  padding-left: 0.625rem;
+  padding-right: 0.625rem;
+}
+
+.bookmark-icon {
+  flex-shrink: 0;
+  fill: transparent; /* "transparent" (not "none") so the fill can fade in */
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  transition: fill var(--transition);
+}
+
+.watchlist-button.is-saved,
+.watchlist-button.is-remove {
+  border-color: rgba(77, 155, 255, 0.45);
+  background-color: var(--color-accent-soft);
+  color: var(--color-accent);
+  box-shadow: none;
+}
+
+.watchlist-button.is-saved .bookmark-icon,
+.watchlist-button.is-remove .bookmark-icon {
+  fill: currentColor;
+}
+
+.watchlist-button.is-saved:hover {
+  background-color: rgba(77, 155, 255, 0.2);
+  box-shadow: none;
+}
+
+/* Remove turns red on hover/focus to signal a destructive action */
+.watchlist-button.is-remove:hover,
+.watchlist-button.is-remove:focus-visible {
+  border-color: var(--color-error-border);
+  background-color: var(--color-error-bg);
+  color: var(--color-error-text);
+  box-shadow: none;
+}
+
+/* Keyboard focus ring: a clear outline that matches the theme
+   (the global :focus-visible rule also applies; this adds a glow). */
+.card-actions .button:focus-visible {
+  outline: 3px solid var(--color-accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 6px var(--color-accent-glow);
+}
+
+/* Rating badge: a small glassy pill placed on top of the poster */
+.rating-badge {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-pill);
+  background-color: rgba(5, 7, 13, 0.82);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  color: var(--color-heading);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.rating-badge::before {
+  content: "★";
+  color: var(--color-accent);
+}
+
+/* The "/10" part is smaller and dimmer than the score itself */
+.rating-scale {
+  color: var(--color-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+/* For movies with no rating yet ("Not rated"): no star, muted text */
+.rating-badge.is-unrated {
+  color: var(--color-text-muted);
+}
+
+.rating-badge.is-unrated::before {
+  content: none;
+}
+
+
+/* ----- 13. Movie details modal (explore.html, Step 7) -----
+   The <dialog> element is the modal window. When closed, the browser
+   hides it automatically, so display rules are only set on its children. */
+.movie-details {
+  /* Centered by the browser; we only set its size.
+     100dvh = the real visible height on mobile (excluding browser bars). */
+  width: min(100% - 1.5rem, 960px);
+  max-width: none;
+  max-height: calc(100vh - 1.5rem);
+  max-height: calc(100dvh - 1.5rem);
+  margin: auto;
+  padding: 0; /* the inner panel has the padding, so the panel fills the dialog */
+  overflow: hidden;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(77, 155, 255, 0.16), transparent 45%),
+    linear-gradient(180deg, var(--color-surface-raised) 0%, var(--color-surface) 100%);
+  color: var(--color-text);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(77, 155, 255, 0.12);
+}
+
+/* ::backdrop is the layer the browser places behind a modal dialog */
+.movie-details::backdrop {
+  background-color: rgba(2, 4, 10, 0.78);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+/* Stop the page behind the modal from scrolling while it is open */
+body:has(.movie-details[open]) {
+  overflow: hidden;
+}
+
+/* Modal opening (Step 13): the browser adds the "open" attribute when
+   showModal() runs, which starts these animations. The window fades in
+   while rising and growing very slightly; the dark backdrop fades in. */
+.movie-details[open] {
+  animation: modal-enter 280ms var(--ease-out);
+}
+
+.movie-details[open]::backdrop {
+  animation: fade-in 280ms ease-out;
+}
+
+@keyframes modal-enter {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+}
+
+/* Modal closing: the browser hides a <dialog> instantly when close() runs,
+   so script.js first adds .is-closing, waits for this short animation
+   (--duration-modal-close), and THEN calls close(). Any trailer is removed
+   before this starts, so its sound stops immediately. "forwards" keeps the
+   invisible end state until the dialog is really closed (no flicker).
+   pointer-events: none ignores extra clicks during the fade-out. */
+.movie-details.is-closing {
+  animation: modal-exit var(--duration-modal-close) ease-in forwards;
+  pointer-events: none;
+}
+
+.movie-details.is-closing::backdrop {
+  animation: fade-out var(--duration-modal-close) ease-in forwards;
+}
+
+@keyframes modal-exit {
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+@keyframes fade-out {
+  to { opacity: 0; }
+}
+
+/* New details content (after loading) fades in softly */
+.details-layout {
+  animation: fade-in 300ms ease-out;
+}
+
+/* The panel scrolls if the content is taller than the screen */
+.movie-details-panel {
+  max-height: calc(100vh - 1.5rem);
+  max-height: calc(100dvh - 1.5rem);
+  overflow-y: auto;
+  overscroll-behavior: contain; /* scrolling inside doesn't scroll the page */
+  padding: var(--space-lg);
+}
+
+/* Title on the left, Close button on the right */
+.movie-details-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.movie-details-header .eyebrow {
+  margin-bottom: var(--space-xs);
+}
+
+.movie-details-title {
+  margin: 0;
+  font-size: clamp(1.5rem, 1.2rem + 1.5vw, 2.25rem);
+  overflow-wrap: anywhere;
+}
+
+/* Round icon-only button (used for Close). 44px for easy tapping. */
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex-shrink: 0;
+  padding: 0;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.04);
+  color: var(--color-heading);
+  cursor: pointer;
+  transition:
+    background-color var(--transition),
+    border-color var(--transition),
+    color var(--transition),
+    transform var(--duration-fast) ease;
+}
+
+.icon-button:hover {
+  border-color: var(--color-accent);
+  background-color: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.icon-button:active {
+  transform: scale(0.94);
+}
+
+/* The loading/error message inside the modal needs no bottom gap */
+.movie-details-content .status-message {
+  margin: 0;
+}
+
+/* Phones: poster on top, information below (one column).
+   Tablets and up: section 15 places the poster beside the information. */
+.details-layout {
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.details-poster {
+  position: relative; /* lets .poster-fallback fill this box */
+  width: min(70%, 220px);
+  margin: 0 auto;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: linear-gradient(160deg, #18233f 0%, #0a1020 100%);
+  box-shadow: var(--shadow-card);
+}
+
+.details-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.details-info {
+  min-width: 0;
+}
+
+.details-tagline {
+  margin: 0 0 var(--space-lg);
+  padding-left: var(--space-md);
+  border-left: 3px solid var(--color-accent);
+  color: var(--color-heading);
+  font-size: 1.0625rem;
+  font-style: italic;
+}
+
+/* Facts grid (rating, release date, runtime, language, genres).
+   One column on small phones; section 15 makes it a 2 × 2 grid from
+   480px up, with the Genres box spanning the full width below. */
+.details-facts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-md);
+  margin: 0 0 var(--space-lg);
+}
+
+.details-fact {
+  padding: 0.75rem var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background-color: rgba(5, 7, 13, 0.35);
+}
+
+/* Genres usually need more room, so that box spans the full row */
+.details-fact:last-child {
+  grid-column: 1 / -1;
+}
+
+.details-fact dt {
+  margin-bottom: 0.2rem;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.details-fact dd {
+  margin: 0;
+  color: var(--color-heading);
+  font-weight: 600;
+}
+
+/* Genre tags in a wrapping row (list bullets removed) */
+.details-genres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin: var(--space-xs) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ----- Trailer controls and player (Step 10) ----- */
+
+/* Row with the Watch Trailer button and its status text */
+.details-trailer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm) var(--space-md);
+  margin: 0 0 var(--space-lg);
+}
+
+.watch-trailer-button .play-icon {
+  flex-shrink: 0;
+  fill: currentColor;
+}
+
+/* Disabled (checking, no trailer, or error): gray and flat so it
+   clearly can't be clicked */
+.watch-trailer-button:disabled {
+  border-color: var(--color-border-strong);
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--color-text-muted);
+  box-shadow: none;
+  opacity: 1;
+}
+
+.details-trailer-status {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+/* Smaller version of the shared spinner while checking for a trailer */
+.details-trailer-status.loading-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.details-trailer-status.loading-indicator::before {
+  width: 1rem;
+  height: 1rem;
+}
+
+.details-trailer-status.is-error {
+  color: var(--color-error-text);
+}
+
+/* The player box shown at the top of the details window.
+   It fades and slides in when "Watch Trailer" is clicked. The video does
+   NOT autoplay: the visitor presses play inside the player. Closing it
+   removes it instantly (no exit animation) so playback stops at once. */
+.trailer-view {
+  margin-bottom: var(--space-lg);
+  padding: var(--space-md);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius);
+  background-color: rgba(5, 7, 13, 0.6);
+  animation: fade-up 350ms var(--ease-out);
+}
+
+.trailer-view-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.trailer-view-title {
+  min-width: 0;
+  margin: 0;
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+
+/* Responsive 16:9 player: aspect-ratio keeps the video shape at any width,
+   and the iframe fills the box. width: 100% means it never overflows. */
+.trailer-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background-color: #000;
+}
+
+.trailer-frame iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* ----- Where to Watch (Step 11) -----
+   A full-width section under the poster and information, separated by a line. */
+.watch-section {
+  margin-top: var(--space-xl);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--color-border-strong);
+}
+
+/* Heading + intro on the left, country selector on the right (wraps on phones) */
+.watch-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-md) var(--space-lg);
+  margin-bottom: var(--space-lg);
+}
+
+.watch-title {
+  margin: 0 0 var(--space-xs);
+  font-size: 1.25rem;
+}
+
+.watch-intro {
+  max-width: 55ch;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.watch-region {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  width: 100%;
+}
+
+.watch-region label {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Loading / empty / error message box */
+.watch-message {
+  margin: 0;
+  padding: var(--space-lg);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius);
+  background-color: rgba(15, 23, 41, 0.45);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.watch-message.loading-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.watch-message.is-error {
+  border-style: solid;
+  border-color: var(--color-error-border);
+  background-color: var(--color-error-bg);
+  color: var(--color-error-text);
+}
+
+.watch-results {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-md);
+}
+
+.watch-results > .watch-message,
+.watch-categories {
+  align-self: stretch;
+}
+
+/* Stream / Rent / Buy: stacked on phones, three columns from 768px */
+.watch-categories {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-md);
+}
+
+.watch-category {
+  padding: var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background-color: rgba(5, 7, 13, 0.35);
+}
+
+.watch-category-title {
+  margin: 0;
+  color: var(--color-accent);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.watch-category-hint,
+.watch-category-empty {
+  margin: 0.125rem 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}
+
+.watch-category-empty {
+  margin-top: 0.75rem;
+  color: var(--color-text-subtle);
+}
+
+/* Providers as small "logo + name" chips that wrap onto new lines */
+.provider-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.provider {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 100%;
+  padding: 0.3rem 0.75rem 0.3rem 0.3rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-surface-raised);
+}
+
+/* 40px logos stay readable on phones; logos keep their own colors */
+.provider-logo {
+  width: 2.5rem;
+  height: 2.5rem;
+  flex-shrink: 0;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+/* Letter badge used when a logo is missing or fails to load */
+.provider-logo-fallback {
+  display: grid;
+  place-items: center;
+  background-color: var(--color-accent-soft);
+  color: var(--color-accent);
+  font-weight: 800;
+}
+
+.provider-name {
+  min-width: 0;
+  color: var(--color-heading);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.watch-attribution {
+  margin: var(--space-lg) 0 0;
+  color: var(--color-text-subtle);
+  font-size: 0.75rem;
+}
+
+.details-subheading {
+  margin-bottom: var(--space-sm);
+  font-size: 1.0625rem;
+}
+
+.details-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+/* Small pill tags for genres, year, runtime, etc. */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.7rem;
+  border: 1px solid rgba(77, 155, 255, 0.3);
+  border-radius: var(--radius-pill);
+  background-color: var(--color-accent-soft);
+  color: var(--color-accent);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.details-overview {
+  max-width: 65ch;
+  margin: 0;
+  color: var(--color-text-muted);
+  line-height: 1.7;
+}
+
+
+/* ----- Feedback message ("toast", Step 9) -----
+   Fixed to the bottom of the screen. It's always in the page (so screen
+   readers notice new text), but takes no space and is invisible when empty. */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: var(--space-lg);
+  z-index: 60;
+  width: max-content;
+  max-width: calc(100% - 2rem);
+  padding: 0.75rem 1.125rem;
+  border: 1px solid rgba(77, 155, 255, 0.45);
+  border-radius: var(--radius);
+  background-color: var(--color-surface-raised);
+  color: var(--color-heading);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  box-shadow: var(--shadow-card);
+  transform: translateX(-50%);
+  /* Slides up and fades in when a message appears (see :empty below) */
+  transition: opacity var(--transition), transform 250ms var(--ease-out);
+}
+
+.toast.is-error {
+  border-color: var(--color-error-border);
+  background-color: #2a1216;
+  color: var(--color-error-text);
+}
+
+/* Empty = no message: invisible and slightly lower. When script.js adds
+   text, :empty stops matching and the transition above slides it in. */
+.toast:empty {
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+  opacity: 0;
+  transform: translate(-50%, 0.5rem);
+}
+
+
+/* ----- Scroll reveal (Step 13) -----
+   script.js adds .reveal ONLY to sections that start below the visible
+   screen, and only when the browser supports IntersectionObserver and
+   the visitor hasn't asked for reduced motion. Without JavaScript the
+   class is never added, so all content is always visible.
+   When a section scrolls into view, script.js adds .is-revealed and the
+   transition fades it in and moves it up into place (once only). */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 600ms ease-out, transform 600ms var(--ease-out);
+}
+
+/* Revealed by scrolling, or reached with the keyboard (Tab or the skip
+   link): never leave focused content invisible. */
+.reveal.is-revealed,
+.reveal:focus-within {
+  opacity: 1;
+  transform: none;
+}
+
+
+/* ----- 14. Footer ----- */
+.site-footer {
+  padding: var(--space-xl) 0;
+  border-top: 1px solid var(--color-border);
+  background-color: rgba(5, 7, 13, 0.6);
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.footer-inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.site-footer p {
+  margin: 0;
+}
+
+.footer-brand {
+  color: var(--color-heading);
+  font-weight: 600;
+}
+
+.attribution {
+  color: var(--color-text-subtle);
+}
+
+
+/* ----- 15. Responsive rules (mobile-first: each block adds to the ones above) ----- */
+
+/* Larger phones: 480px and up → two columns of classic tall poster cards */
+@media (min-width: 480px) {
+  .movie-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .movie-card {
+    flex-direction: column;
+  }
+
+  .movie-card-poster {
+    width: 100%;
+  }
+
+  .details-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* Skeletons switch to the tall card shape together with real cards */
+  .skeleton-card {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+    gap: 0.5rem;
+  }
+
+  .skeleton-poster {
+    grid-row: auto;
+  }
+
+  .skeleton-line {
+    margin: 0.5rem 0.75rem 0;
+  }
+
+  .skeleton-line-short {
+    margin: 0 0.75rem 1rem;
+  }
+}
+
+/* Large phones / small tablets: 600px and up */
+@media (min-width: 600px) {
+  /* Logo and navigation fit on one row again */
+  .main-nav {
+    width: auto;
+  }
+
+  .nav-list li {
+    flex: none;
+  }
+}
+
+/* Tablets: 768px and up */
+@media (min-width: 768px) {
+  .container {
+    padding: 0 var(--space-lg);
+  }
+
+  .hero {
+    padding: 5rem 3.5rem;
+  }
+
+  .page-header {
+    padding-top: var(--space-2xl);
+  }
+
+  .search-panel {
+    padding: var(--space-xl);
+  }
+
+  /* One row: the title field gets 2 shares, genre 1 share, button its natural width */
+  .search-form {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto;
+    align-items: end;
+  }
+
+  .search-form .button {
+    width: auto;
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+
+  /* In the one-row layout, the genre status line sits just below the
+     dropdown without pushing it up, so all three controls stay aligned. */
+  .search-form .form-field {
+    position: relative;
+  }
+
+  .search-form .field-hint {
+    position: absolute;
+    top: calc(100% + 0.375rem);
+    left: 0;
+    right: 0;
+  }
+
+  .movie-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-lg) 1.25rem;
+  }
+
+  .movie-details-panel {
+    padding: var(--space-xl);
+  }
+
+  /* Details: poster column on the left, information on the right */
+  .details-layout {
+    grid-template-columns: 240px minmax(0, 1fr);
+    gap: var(--space-xl);
+    align-items: start;
+  }
+
+  .details-poster {
+    width: 100%;
+    margin: 0;
+  }
+
+  /* Where to Watch: compact selector beside the heading, three columns */
+  .watch-region {
+    width: 14rem;
+  }
+
+  .watch-categories {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .footer-inner {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-lg);
+  }
+}
+
+/* Small laptops: 1024px and up */
+@media (min-width: 1024px) {
+  .hero {
+    padding: 6rem 4.5rem;
+  }
+
+  .movie-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-xl) var(--space-lg);
+  }
+
+  .movie-card-body {
+    padding: var(--space-md);
+  }
+
+  .movie-card-title {
+    font-size: 1rem;
+  }
+}
+
+/* Large desktops: 1280px and up (covers 1440px screens) */
+@media (min-width: 1280px) {
+  .movie-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+/* ----- 16. Reduced motion (accessibility) -----
+   Some people get dizzy, distracted, or unwell from movement on screen,
+   and can turn on "Reduce motion" in their operating system settings
+   (Windows: Settings > Accessibility > Visual effects > Animation effects;
+   macOS/iOS: Accessibility > Motion > Reduce motion; Android: Remove
+   animations). The prefers-reduced-motion media query lets CSS respect it.
+
+   Inside this block we:
+   - finish every animation and transition instantly (0.01ms instead of
+     "none", so animationend/transitionend events still fire), with no
+     delays and no repeats, so each element simply shows its final state;
+   - remove movement (lifts, zooms, slides). Colour and border changes
+     still happen, so hover and focus feedback remain visible;
+   - keep the loading TEXT; the spinner shows as a still ring.
+   script.js also checks this setting: it skips scroll reveals and closes
+   the details window without waiting for a fade-out. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+    scroll-behavior: auto !important;
+  }
+
+  .button:hover,
+  .button:active,
+  .nav-link:active,
+  .icon-button:active,
+  .movie-card:hover,
+  .movie-card:hover .movie-card-poster img {
+    transform: none;
+  }
+
+  /* Separate rule: a browser without :has() would ignore a whole list */
+  .movie-card:has(:focus-visible) {
+    transform: none;
+  }
+
+  /* No skeleton shimmer and a still spinner (loading text stays visible) */
+  .loading-indicator::before,
+  .skeleton-block {
+    animation: none !important;
+  }
+
+  /* Scroll-revealed sections are always fully visible */
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Printing: never print a section that hasn't been revealed yet as blank */
+@media print {
+  .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
