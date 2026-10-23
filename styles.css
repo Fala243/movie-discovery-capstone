@@ -34,6 +34,7 @@
   --color-surface-raised: #16203a;
   --color-border: #1f2a44;
   --color-border-strong: #2d3b5e;
+  --color-border-hover: #3b4c75;
 
   /* Text: white headings, soft white body, muted gray secondary text */
   --color-heading: #ffffff;
@@ -51,14 +52,34 @@
   --color-accent-soft: rgba(77, 155, 255, 0.12);
   --color-accent-glow: rgba(77, 155, 255, 0.35);
 
+  /* Success: confirmations and the "Saved" watchlist state */
+  --color-success: #3ddc97;
+  --color-success-soft: rgba(61, 220, 151, 0.12);
+  --color-success-border: rgba(61, 220, 151, 0.45);
+
   /* Errors */
   --color-error-bg: rgba(255, 92, 92, 0.1);
   --color-error-border: rgba(255, 92, 92, 0.45);
   --color-error-text: #ffb3b3;
+  --color-error-surface: #2a1216; /* solid version for the floating toast */
+
+  /* Colour rules for the rest of this file: every solid colour is one of
+     the tokens above. rgba() values are see-through tints of these same
+     colours (e.g. 77,155,255 = --color-accent; 31,111,235 =
+     --color-accent-strong; 5,7,13 = --color-bg; 15,23,41 = --color-surface;
+     255,255,255 = white), plus black for shadows. */
 
   /* Inter is loaded from Google Fonts in each page's <head>.
      If it fails to load, the system font is used instead. */
   --font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+
+  /* Type scale (Polish step): only these four sizes are used.
+     Hierarchy comes from weight and colour, not from extra sizes:
+     titles 700–800, headings 600, labels/buttons 600–700, text 400. */
+  --text-title: 2.25rem;   /* 36px — page titles (h1, hero, movie title) */
+  --text-heading: 1.5rem;  /* 24px — section headings (h2) */
+  --text-body: 1rem;       /* 16px — body text, buttons, links, card titles */
+  --text-caption: 1rem;    /* 16px — captions, labels, secondary text */
 
   /* Rounded corners */
   --radius-sm: 8px;
@@ -66,13 +87,14 @@
   --radius-lg: 20px;
   --radius-pill: 999px;
 
-  /* Spacing scale: using the same few sizes everywhere keeps rhythm consistent */
-  --space-xs: 0.25rem;
-  --space-sm: 0.5rem;
-  --space-md: 1rem;
-  --space-lg: 1.5rem;
-  --space-xl: 2.5rem;
-  --space-2xl: 4rem;
+  /* Spacing scale (8px system): every padding, margin, and gap uses
+     one of these, so the rhythm stays consistent across the app. */
+  --space-sm: 0.5rem;   /* 8px  — small gaps between related elements */
+  --space-md: 1rem;     /* 16px — standard spacing */
+  --space-lg: 1.5rem;   /* 24px — card padding */
+  --space-xl: 2rem;     /* 32px — section spacing */
+  --space-2xl: 3rem;    /* 48px — large section spacing */
+  --space-3xl: 4rem;    /* 64px — major layout separation */
 
   --max-width: 1320px;
 
@@ -130,7 +152,7 @@ html {
 body {
   margin: 0;
   font-family: var(--font-family);
-  font-size: 1rem;
+  font-size: var(--text-body);
   line-height: 1.6;
   color: var(--color-text);
   /* Subtle gradient: a soft blue glow at the top fading from navy into near-black */
@@ -171,14 +193,15 @@ h3 {
 }
 
 /* clamp(min, preferred, max) scales text smoothly between screen sizes */
+/* Fixed sizes from the type scale (tokens in section 1) */
 h1 {
-  font-size: clamp(1.875rem, 1.4rem + 2vw, 2.75rem);
-  font-weight: 800;
+  font-size: var(--text-title);
+  font-weight: 700;
 }
 
 h2 {
-  font-size: clamp(1.25rem, 1.1rem + 0.6vw, 1.625rem);
-  font-weight: 700;
+  font-size: var(--text-heading);
+  font-weight: 600;
 }
 
 p {
@@ -187,7 +210,7 @@ p {
 
 ::selection {
   background: var(--color-accent-strong);
-  color: #ffffff;
+  color: var(--color-heading);
 }
 
 
@@ -207,10 +230,13 @@ p {
   left: var(--space-md);
   top: var(--space-md);
   z-index: 100;
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem; /* 44px touch target */
   padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-sm);
   background: var(--color-accent-strong);
-  color: #ffffff;
+  color: var(--color-heading);
   font-weight: 700;
   text-decoration: none;
   transform: translateY(calc(-100% - 2rem));
@@ -264,9 +290,9 @@ p {
   gap: var(--space-sm);
   margin: 0 0 var(--space-sm);
   color: var(--color-accent);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
+  font-size: var(--text-caption);
+  font-weight: 600;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
@@ -295,7 +321,7 @@ p {
 .section-title {
   display: flex;
   align-items: center;
-  gap: 0.625rem;
+  gap: var(--space-sm);
   margin: 0;
 }
 
@@ -309,9 +335,9 @@ p {
 }
 
 .section-subtitle {
-  margin: var(--space-xs) 0 0;
+  margin: var(--space-sm) 0 0;
   color: var(--color-text-muted);
-  font-size: 0.9375rem;
+  font-size: var(--text-caption);
 }
 
 
@@ -337,16 +363,17 @@ p {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-sm) var(--space-md);
-  padding-top: 0.75rem;
-  padding-bottom: 0.75rem;
+  padding-top: var(--space-sm);
+  padding-bottom: var(--space-sm);
 }
 
 .logo {
   display: inline-flex;
   align-items: center;
-  gap: 0.625rem;
+  min-height: 2.75rem; /* 44px touch target */
+  gap: var(--space-sm);
   color: var(--color-heading);
-  font-size: 1.125rem;
+  font-size: var(--text-body);
   font-weight: 800;
   letter-spacing: -0.02em;
   text-decoration: none;
@@ -365,6 +392,19 @@ p {
   border-radius: 9px;
   background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-strong) 100%);
   box-shadow: 0 6px 18px rgba(31, 111, 235, 0.45);
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+
+/* Logo hover: the play icon glows brighter (all devices) and grows
+   slightly (mouse/trackpad only, so taps never leave it "stuck"). */
+.logo:hover .logo-mark {
+  box-shadow: 0 8px 24px rgba(31, 111, 235, 0.7);
+}
+
+@media (hover: hover) {
+  .logo:hover .logo-mark {
+    transform: scale(1.08);
+  }
 }
 
 .logo-mark::after {
@@ -374,7 +414,7 @@ p {
   left: 54%;
   width: 0.7rem;
   height: 0.8rem;
-  background: #ffffff;
+  background: var(--color-heading);
   /* clip-path cuts the square into a triangle */
   clip-path: polygon(0 0, 100% 50%, 0 100%);
   transform: translate(-50%, -50%);
@@ -388,9 +428,9 @@ p {
 /* On phones, the three links share the row equally, like a segmented control */
 .nav-list {
   display: flex;
-  gap: var(--space-xs);
+  gap: 0;
   margin: 0;
-  padding: var(--space-xs);
+  padding: 0;
   list-style: none;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
@@ -404,11 +444,14 @@ p {
 .nav-link {
   position: relative;
   isolation: isolate; /* keeps the ::before pill behind the link text */
-  display: block;
-  padding: 0.4rem 0.875rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem; /* 44px touch target */
+  padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-pill);
   color: var(--color-text-muted);
-  font-size: 0.9375rem;
+  font-size: var(--text-body);
   font-weight: 600;
   text-align: center;
   text-decoration: none;
@@ -444,7 +487,7 @@ p {
 /* Active page: aria-current="page" is already in the HTML, so the same
    attribute that helps screen readers also drives the visual highlight. */
 .nav-link[aria-current="page"] {
-  color: #ffffff;
+  color: var(--color-heading);
 }
 
 .nav-link[aria-current="page"]::before {
@@ -475,13 +518,13 @@ p {
   justify-content: center;
   gap: var(--space-sm);
   min-height: 2.75rem; /* 44px: a comfortable touch target */
-  padding: 0.625rem 1.25rem;
+  padding: var(--space-sm) var(--space-lg);
   border: 1px solid transparent;
   border-radius: var(--radius-pill);
   background-color: var(--color-accent-strong);
-  color: #ffffff;
+  color: var(--color-heading);
   font: inherit;
-  font-size: 0.9375rem;
+  font-size: var(--text-body);
   font-weight: 700;
   line-height: 1.2;
   text-align: center;
@@ -539,14 +582,13 @@ p {
 
 .button-large {
   min-height: 3.25rem;
-  padding: 0.875rem 1.75rem;
-  font-size: 1rem;
+  padding: var(--space-md) var(--space-xl);
 }
 
+/* Narrower padding than .button, but still a full 44px touch target */
 .button-small {
-  min-height: 2.25rem;
-  padding: 0.4rem 0.875rem;
-  font-size: 0.8125rem;
+  min-height: 2.75rem;
+  padding: var(--space-sm) var(--space-md);
 }
 
 .button-block {
@@ -565,14 +607,14 @@ p {
   display: flex;
   align-items: center;
   min-height: clamp(24rem, 62vh, 34rem);
-  margin: var(--space-lg) 0 var(--space-2xl);
-  padding: var(--space-2xl) var(--space-lg);
+  margin: var(--space-lg) 0 var(--space-3xl);
+  padding: var(--space-3xl) var(--space-md); /* wider sides from 768px */
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background:
     radial-gradient(circle at 88% 12%, rgba(77, 155, 255, 0.38), transparent 42%),
     radial-gradient(circle at 0% 105%, rgba(31, 111, 235, 0.28), transparent 50%),
-    linear-gradient(135deg, #0c1630 0%, #070b16 60%, var(--color-bg) 100%);
+    linear-gradient(135deg, var(--color-surface) 0%, var(--color-bg-navy) 60%, var(--color-bg) 100%);
   box-shadow: var(--shadow-card);
 }
 
@@ -592,23 +634,29 @@ p {
 }
 
 /* Small pill label above the hero headline */
+/* Slightly tighter letter spacing keeps this label on one line at 375px */
 .hero .eyebrow {
-  padding: 0.35rem 0.8rem;
+  padding: var(--space-sm) var(--space-md);
+  letter-spacing: 0.05em;
   border: 1px solid rgba(77, 155, 255, 0.35);
   border-radius: var(--radius-pill);
   background-color: var(--color-accent-soft);
 }
 
+/* Same 36px title size as other pages; the heavier weight, tighter
+   letter spacing, and gradient text keep the hero headline prominent. */
 .hero-title {
   margin-bottom: var(--space-md);
-  font-size: clamp(2.25rem, 1.4rem + 4vw, 4.25rem);
-  line-height: 1.05;
+  font-size: var(--text-title);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
 }
 
 /* Gradient-filled text. The plain color is a fallback for older browsers. */
 .text-gradient {
   color: var(--color-accent);
-  background: linear-gradient(90deg, #ffffff 0%, var(--color-accent) 70%);
+  background: linear-gradient(90deg, var(--color-heading) 0%, var(--color-accent) 70%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -618,7 +666,7 @@ p {
   max-width: 34rem;
   margin-bottom: var(--space-xl);
   color: var(--color-text-muted);
-  font-size: clamp(1rem, 0.95rem + 0.3vw, 1.1875rem);
+  font-size: var(--text-body);
 }
 
 /* Flexbox lines up the buttons; wrap stacks them on narrow phones */
@@ -675,14 +723,14 @@ p {
 .form-field {
   display: flex;
   flex-direction: column;
-  gap: 0.375rem;
+  gap: var(--space-sm);
   /* min-width: 0 lets fields shrink inside the grid instead of overflowing */
   min-width: 0;
 }
 
 .form-field label {
   color: var(--color-text-muted);
-  font-size: 0.75rem;
+  font-size: var(--text-caption);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -706,7 +754,7 @@ p {
 }
 
 .form-control:hover {
-  border-color: #3b4c75;
+  border-color: var(--color-border-hover);
 }
 
 /* Blue border + soft glow instead of the default outline */
@@ -725,7 +773,7 @@ p {
 
 /* Magnifying-glass icon drawn with a small inline SVG (no external image) */
 .search-input {
-  padding-left: 2.75rem;
+  padding-left: 3rem; /* room for the magnifying-glass icon */
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239aa3b8' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: 1rem center;
@@ -742,7 +790,7 @@ p {
 .select-control {
   -webkit-appearance: none;
   appearance: none;
-  padding-right: 2.75rem;
+  padding-right: 3rem; /* room for the dropdown arrow */
   cursor: pointer;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239aa3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
@@ -760,7 +808,7 @@ p {
 .field-hint {
   margin: 0;
   color: var(--color-text-muted);
-  font-size: 0.8125rem;
+  font-size: var(--text-caption);
 }
 
 .field-hint:empty {
@@ -784,9 +832,9 @@ p {
 }
 
 .results-summary {
-  margin: var(--space-xs) 0 0;
+  margin: var(--space-sm) 0 0;
   color: var(--color-text-muted);
-  font-size: 0.9375rem;
+  font-size: var(--text-caption);
 }
 
 /* Hide the summary line until script.js puts text in it */
@@ -799,9 +847,9 @@ p {
 .status-message {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--space-md);
   margin: 0 0 var(--space-lg);
-  padding: 0.875rem var(--space-md);
+  padding: var(--space-md);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   background-color: var(--color-surface);
@@ -847,7 +895,7 @@ p {
   border-radius: 50%;
   background-color: var(--color-error-text);
   color: var(--color-bg);
-  font-size: 0.875rem;
+  font-size: var(--text-caption);
   font-weight: 800;
 }
 
@@ -859,7 +907,7 @@ p {
   align-items: center;
   gap: var(--space-sm);
   margin-bottom: var(--space-lg);
-  padding: var(--space-2xl) var(--space-lg);
+  padding: var(--space-3xl) var(--space-lg);
   text-align: center;
   border: 1px dashed var(--color-border-strong);
   border-radius: var(--radius-lg);
@@ -883,8 +931,8 @@ p {
 .empty-state-title {
   margin: 0;
   color: var(--color-heading);
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: var(--text-heading);
+  font-weight: 600;
 }
 
 .empty-state-text {
@@ -896,7 +944,7 @@ p {
 
 /* ----- 11. Movie sections & responsive card grid ----- */
 .movie-section {
-  margin-bottom: var(--space-2xl);
+  margin-bottom: var(--space-3xl);
 }
 
 /* CSS Grid with a fixed number of columns per screen size:
@@ -919,17 +967,17 @@ p {
   grid-column: 1 / -1; /* spans the whole grid row */
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--space-sm);
   margin: 0;
   color: var(--color-text-muted);
-  font-size: 0.9375rem;
+  font-size: var(--text-caption);
 }
 
 .skeleton-card {
   display: grid;
   grid-template-columns: 7.5rem minmax(0, 1fr);
   grid-template-rows: auto auto 1fr;
-  gap: 0.5rem 0.75rem;
+  gap: var(--space-sm) var(--space-md);
   min-width: 0;
   overflow: hidden;
   border: 1px solid var(--color-border);
@@ -958,7 +1006,7 @@ p {
 
 .skeleton-line {
   height: 0.875rem;
-  margin: 0.875rem 0.75rem 0 0;
+  margin: var(--space-md) var(--space-md) 0 0;
 }
 
 .skeleton-line-short {
@@ -1018,7 +1066,7 @@ p {
 .movie-grid-message .loading-indicator {
   display: inline-flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--space-sm);
 }
 
 .movie-grid-message.is-error {
@@ -1043,7 +1091,7 @@ p {
   border-radius: var(--radius);
   background-color: rgba(15, 23, 41, 0.45);
   color: var(--color-text-subtle);
-  font-size: 0.9375rem;
+  font-size: var(--text-caption);
   text-align: center;
 }
 
@@ -1078,9 +1126,9 @@ p {
   /* Card transitions: the lift uses transform (cheap for the browser);
      the border colour and shadow fade alongside it. */
   transition:
-    transform 250ms var(--ease-out),
-    border-color 250ms ease,
-    box-shadow 250ms ease;
+    transform 200ms var(--ease-out),
+    border-color var(--transition),
+    box-shadow var(--transition);
 }
 
 /* Subtle lift and blue glow. Hover effects are limited to real hover
@@ -1139,7 +1187,7 @@ p {
   aspect-ratio: 2 / 3;
   align-self: flex-start;
   overflow: hidden;
-  background: linear-gradient(160deg, #18233f 0%, #0a1020 100%);
+  background: linear-gradient(160deg, var(--color-surface-raised) 0%, var(--color-bg-navy) 100%);
 }
 
 .movie-card-poster img {
@@ -1170,7 +1218,7 @@ p {
   gap: var(--space-sm);
   padding: var(--space-md);
   color: var(--color-text-subtle);
-  font-size: 0.8125rem;
+  font-size: var(--text-caption);
   line-height: 1.35;
   text-align: center;
 }
@@ -1188,9 +1236,9 @@ p {
   display: flex;
   flex: 1; /* fills leftover space so cards in a row line up */
   flex-direction: column;
-  gap: var(--space-xs);
+  gap: var(--space-sm);
   min-width: 0; /* lets long text wrap instead of widening the card */
-  padding: 0.75rem;
+  padding: var(--space-md); /* 24px top/bottom from 480px up (section 15) */
 }
 
 /* Long titles are cut off after two lines with "…" */
@@ -1202,7 +1250,7 @@ p {
   overflow: hidden;
   margin: 0;
   color: var(--color-heading);
-  font-size: 0.9375rem;
+  font-size: var(--text-body);
   font-weight: 600;
   letter-spacing: -0.01em;
   line-height: 1.3;
@@ -1212,8 +1260,8 @@ p {
 .movie-card-meta {
   margin: 0;
   color: var(--color-accent);
-  font-size: 0.8125rem;
-  font-weight: 600;
+  font-size: var(--text-caption);
+  font-weight: 400;
 }
 
 /* Short description: cut off after 4 lines with "…" so cards stay even.
@@ -1224,9 +1272,9 @@ p {
   -webkit-line-clamp: 4;
   line-clamp: 4;
   overflow: hidden;
-  margin: var(--space-xs) 0 0;
+  margin: 0;
   color: var(--color-text-muted);
-  font-size: 0.8125rem;
+  font-size: var(--text-caption);
   line-height: 1.5;
 }
 
@@ -1247,9 +1295,9 @@ p {
 /* Slightly tighter spacing so "Remove from Watchlist" fits on one line in
    narrow cards (it can still wrap neatly on very small screens). */
 .watchlist-button {
-  gap: 0.375rem;
-  padding-left: 0.625rem;
-  padding-right: 0.625rem;
+  gap: var(--space-sm);
+  padding-left: var(--space-sm);
+  padding-right: var(--space-sm);
 }
 
 .bookmark-icon {
@@ -1261,7 +1309,14 @@ p {
   transition: fill var(--transition);
 }
 
-.watchlist-button.is-saved,
+/* Saved: the success colour confirms the movie is on the watchlist */
+.watchlist-button.is-saved {
+  border-color: var(--color-success-border);
+  background-color: var(--color-success-soft);
+  color: var(--color-success);
+  box-shadow: none;
+}
+
 .watchlist-button.is-remove {
   border-color: rgba(77, 155, 255, 0.45);
   background-color: var(--color-accent-soft);
@@ -1275,7 +1330,7 @@ p {
 }
 
 .watchlist-button.is-saved:hover {
-  background-color: rgba(77, 155, 255, 0.2);
+  background-color: rgba(61, 220, 151, 0.2);
   box-shadow: none;
 }
 
@@ -1304,15 +1359,15 @@ p {
   z-index: 1;
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.2rem 0.55rem;
+  gap: 0.25rem; /* tiny star-to-score gap inside the badge (exception) */
+  padding: 0 var(--space-sm);
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: var(--radius-pill);
   background-color: rgba(5, 7, 13, 0.82);
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   color: var(--color-heading);
-  font-size: 0.75rem;
+  font-size: var(--text-caption);
   font-weight: 700;
   line-height: 1.4;
 }
@@ -1325,8 +1380,8 @@ p {
 /* The "/10" part is smaller and dimmer than the score itself */
 .rating-scale {
   color: var(--color-text-muted);
-  font-size: 0.6875rem;
-  font-weight: 600;
+  font-size: var(--text-caption);
+  font-weight: 400;
 }
 
 /* For movies with no rating yet ("Not rated"): no star, muted text */
@@ -1363,7 +1418,7 @@ p {
 
 /* ::backdrop is the layer the browser places behind a modal dialog */
 .movie-details::backdrop {
-  background-color: rgba(2, 4, 10, 0.78);
+  background-color: rgba(5, 7, 13, 0.8);
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
 }
@@ -1441,12 +1496,13 @@ body:has(.movie-details[open]) {
 }
 
 .movie-details-header .eyebrow {
-  margin-bottom: var(--space-xs);
+  margin-bottom: var(--space-sm);
 }
 
 .movie-details-title {
   margin: 0;
-  font-size: clamp(1.5rem, 1.2rem + 1.5vw, 2.25rem);
+  font-size: var(--text-title);
+  font-weight: 700;
   overflow-wrap: anywhere;
 }
 
@@ -1500,7 +1556,7 @@ body:has(.movie-details[open]) {
   overflow: hidden;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  background: linear-gradient(160deg, #18233f 0%, #0a1020 100%);
+  background: linear-gradient(160deg, var(--color-surface-raised) 0%, var(--color-bg-navy) 100%);
   box-shadow: var(--shadow-card);
 }
 
@@ -1519,7 +1575,7 @@ body:has(.movie-details[open]) {
   padding-left: var(--space-md);
   border-left: 3px solid var(--color-accent);
   color: var(--color-heading);
-  font-size: 1.0625rem;
+  font-size: var(--text-body);
   font-style: italic;
 }
 
@@ -1534,7 +1590,7 @@ body:has(.movie-details[open]) {
 }
 
 .details-fact {
-  padding: 0.75rem var(--space-md);
+  padding: var(--space-md);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   background-color: rgba(5, 7, 13, 0.35);
@@ -1546,9 +1602,9 @@ body:has(.movie-details[open]) {
 }
 
 .details-fact dt {
-  margin-bottom: 0.2rem;
+  margin-bottom: 0;
   color: var(--color-text-muted);
-  font-size: 0.75rem;
+  font-size: var(--text-caption);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1565,7 +1621,7 @@ body:has(.movie-details[open]) {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-sm);
-  margin: var(--space-xs) 0 0;
+  margin: var(--space-sm) 0 0;
   padding: 0;
   list-style: none;
 }
@@ -1599,7 +1655,7 @@ body:has(.movie-details[open]) {
 .details-trailer-status {
   margin: 0;
   color: var(--color-text-muted);
-  font-size: 0.875rem;
+  font-size: var(--text-caption);
 }
 
 /* Smaller version of the shared spinner while checking for a trailer */
@@ -1643,7 +1699,7 @@ body:has(.movie-details[open]) {
 .trailer-view-title {
   min-width: 0;
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--text-body);
   overflow-wrap: anywhere;
 }
 
@@ -1655,7 +1711,7 @@ body:has(.movie-details[open]) {
   aspect-ratio: 16 / 9;
   overflow: hidden;
   border-radius: var(--radius-sm);
-  background-color: #000;
+  background-color: var(--color-bg);
 }
 
 .trailer-frame iframe {
@@ -1685,27 +1741,28 @@ body:has(.movie-details[open]) {
 }
 
 .watch-title {
-  margin: 0 0 var(--space-xs);
-  font-size: 1.25rem;
+  margin: 0 0 var(--space-sm);
+  font-size: var(--text-heading);
+  font-weight: 600;
 }
 
 .watch-intro {
   max-width: 55ch;
   margin: 0;
   color: var(--color-text-muted);
-  font-size: 0.875rem;
+  font-size: var(--text-caption);
 }
 
 .watch-region {
   display: flex;
   flex-direction: column;
-  gap: 0.375rem;
+  gap: var(--space-sm);
   width: 100%;
 }
 
 .watch-region label {
   color: var(--color-text-muted);
-  font-size: 0.75rem;
+  font-size: var(--text-caption);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1726,7 +1783,7 @@ body:has(.movie-details[open]) {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
+  gap: var(--space-sm);
 }
 
 .watch-message.is-error {
@@ -1765,7 +1822,7 @@ body:has(.movie-details[open]) {
 .watch-category-title {
   margin: 0;
   color: var(--color-accent);
-  font-size: 0.8125rem;
+  font-size: var(--text-body);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1773,13 +1830,13 @@ body:has(.movie-details[open]) {
 
 .watch-category-hint,
 .watch-category-empty {
-  margin: 0.125rem 0 0;
+  margin: 0;
   color: var(--color-text-muted);
-  font-size: 0.8125rem;
+  font-size: var(--text-caption);
 }
 
 .watch-category-empty {
-  margin-top: 0.75rem;
+  margin-top: var(--space-md);
   color: var(--color-text-subtle);
 }
 
@@ -1788,7 +1845,7 @@ body:has(.movie-details[open]) {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-sm);
-  margin: 0.75rem 0 0;
+  margin: var(--space-md) 0 0;
   padding: 0;
   list-style: none;
 }
@@ -1796,9 +1853,9 @@ body:has(.movie-details[open]) {
 .provider {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-sm);
   max-width: 100%;
-  padding: 0.3rem 0.75rem 0.3rem 0.3rem;
+  padding: var(--space-sm) var(--space-md) var(--space-sm) var(--space-sm);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background-color: var(--color-surface-raised);
@@ -1825,7 +1882,7 @@ body:has(.movie-details[open]) {
 .provider-name {
   min-width: 0;
   color: var(--color-heading);
-  font-size: 0.8125rem;
+  font-size: var(--text-body);
   font-weight: 600;
   line-height: 1.3;
   overflow-wrap: anywhere;
@@ -1834,12 +1891,14 @@ body:has(.movie-details[open]) {
 .watch-attribution {
   margin: var(--space-lg) 0 0;
   color: var(--color-text-subtle);
-  font-size: 0.75rem;
+  font-size: var(--text-caption);
 }
 
+/* "Overview" label: body size, made distinct by its bold weight */
 .details-subheading {
   margin-bottom: var(--space-sm);
-  font-size: 1.0625rem;
+  font-size: var(--text-body);
+  font-weight: 700;
 }
 
 .details-meta {
@@ -1853,12 +1912,12 @@ body:has(.movie-details[open]) {
 .tag {
   display: inline-flex;
   align-items: center;
-  padding: 0.2rem 0.7rem;
+  padding: 0 var(--space-md);
   border: 1px solid rgba(77, 155, 255, 0.3);
   border-radius: var(--radius-pill);
   background-color: var(--color-accent-soft);
   color: var(--color-accent);
-  font-size: 0.8125rem;
+  font-size: var(--text-caption);
   font-weight: 600;
 }
 
@@ -1880,13 +1939,13 @@ body:has(.movie-details[open]) {
   z-index: 60;
   width: max-content;
   max-width: calc(100% - 2rem);
-  padding: 0.75rem 1.125rem;
-  border: 1px solid rgba(77, 155, 255, 0.45);
+  padding: var(--space-md) var(--space-lg);
+  border: 1px solid var(--color-success-border); /* confirmation (errors: .is-error) */
   border-radius: var(--radius);
   background-color: var(--color-surface-raised);
   color: var(--color-heading);
-  font-size: 0.9375rem;
-  font-weight: 500;
+  font-size: var(--text-body);
+  font-weight: 600;
   box-shadow: var(--shadow-card);
   transform: translateX(-50%);
   /* Slides up and fades in when a message appears (see :empty below) */
@@ -1895,7 +1954,7 @@ body:has(.movie-details[open]) {
 
 .toast.is-error {
   border-color: var(--color-error-border);
-  background-color: #2a1216;
+  background-color: var(--color-error-surface);
   color: var(--color-error-text);
 }
 
@@ -1938,7 +1997,7 @@ body:has(.movie-details[open]) {
   border-top: 1px solid var(--color-border);
   background-color: rgba(5, 7, 13, 0.6);
   color: var(--color-text-muted);
-  font-size: 0.875rem;
+  font-size: var(--text-caption);
 }
 
 .footer-inner {
@@ -1985,7 +2044,7 @@ body:has(.movie-details[open]) {
   .skeleton-card {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto;
-    gap: 0.5rem;
+    gap: var(--space-sm);
   }
 
   .skeleton-poster {
@@ -1993,11 +2052,18 @@ body:has(.movie-details[open]) {
   }
 
   .skeleton-line {
-    margin: 0.5rem 0.75rem 0;
+    margin: var(--space-sm) var(--space-md) 0;
   }
 
   .skeleton-line-short {
-    margin: 0 0.75rem 1rem;
+    margin: 0 var(--space-md) var(--space-lg);
+  }
+
+  /* Tall cards: the standard 24px card padding top and bottom. The sides
+     stay 16px so "Save to Watchlist" fits on one line in the narrowest
+     grid columns (about 216px wide at 480px, 768px, and 1024px). */
+  .movie-card-body {
+    padding: var(--space-lg) var(--space-md);
   }
 }
 
@@ -2020,11 +2086,11 @@ body:has(.movie-details[open]) {
   }
 
   .hero {
-    padding: 5rem 3.5rem;
+    padding: var(--space-3xl) var(--space-2xl);
   }
 
   .page-header {
-    padding-top: var(--space-2xl);
+    padding-top: var(--space-3xl);
   }
 
   .search-panel {
@@ -2039,8 +2105,8 @@ body:has(.movie-details[open]) {
 
   .search-form .button {
     width: auto;
-    padding-left: 2rem;
-    padding-right: 2rem;
+    padding-left: var(--space-xl);
+    padding-right: var(--space-xl);
   }
 
   /* In the one-row layout, the genre status line sits just below the
@@ -2051,14 +2117,14 @@ body:has(.movie-details[open]) {
 
   .search-form .field-hint {
     position: absolute;
-    top: calc(100% + 0.375rem);
+    top: calc(100% + var(--space-sm));
     left: 0;
     right: 0;
   }
 
   .movie-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: var(--space-lg) 1.25rem;
+    gap: var(--space-lg);
   }
 
   .movie-details-panel {
@@ -2097,7 +2163,7 @@ body:has(.movie-details[open]) {
 /* Small laptops: 1024px and up */
 @media (min-width: 1024px) {
   .hero {
-    padding: 6rem 4.5rem;
+    padding: var(--space-3xl);
   }
 
   .movie-grid {
@@ -2105,13 +2171,6 @@ body:has(.movie-details[open]) {
     gap: var(--space-xl) var(--space-lg);
   }
 
-  .movie-card-body {
-    padding: var(--space-md);
-  }
-
-  .movie-card-title {
-    font-size: 1rem;
-  }
 }
 
 /* Large desktops: 1280px and up (covers 1440px screens) */
@@ -2151,6 +2210,7 @@ body:has(.movie-details[open]) {
 
   .button:hover,
   .button:active,
+  .logo:hover .logo-mark,
   .nav-link:active,
   .icon-button:active,
   .movie-card:hover,
